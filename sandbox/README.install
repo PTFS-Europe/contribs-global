@@ -1,0 +1,70 @@
+# retrieve sandbox system from contrib repository
+git clone git://git.koha-community.org/contrib/global.git /home/koha/contrib
+
+# uncompress .sample databases
+gzip -d sandbox*.sql.gz
+
+# go to koha and update it
+cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
+# copy files from contrib repo to koha:
+cp /home/koha/contrib/sandbox/* /home/koha/src
+# (the sandbox files should be in your main KOHA directory)
+
+Update your crontab.
+Your crontab should look like this:
+# who should I mail?
+MAILTO=paul.poulain@biblibre.com
+# add /home/koha/bin, where git-bz will be stored
+PATH=/home/koha/bin:/usr/local/bin:/usr/bin:/bin
+# Koha conf
+KOHA_CONF=/home/koha/etc/koha-conf.xml
+PERL5LIB=/home/koha/src
+
+##### For Rebuild Zebra
+* * * * * /home/koha/bin/zebraqueue.sh > /dev/null 2>&1
+
+# update master every night at 1:15AM
+15 1 * * * cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
+
+# every minute, check if there is a sandbox to install
+* * * * * cd /home/koha/src;./sandbox.cron
+
+
+# retrieve git bz
+git clone git://gitorious.org/~slef/git-bz/slefs-git-bz.git git-bz
+# apply -3 parameters patch
+cd git-bz
+wget https://depot.biblibre.com/ppoulain/0001-Add-3-parameter-to-git-am.patch
+[ or 
+wget http://webdav103-sandbox/ppoulain/0001-Add-3-parameter-to-git-am.patch
+if you're in BibLibre VPN
+]
+
+git am -3 0001-Add-3-parameter-to-git-am.patch
+
+# make git-bz on PATH
+ln -s /home/koha/git-bz/git-bz /home/koha/bin/git-bz
+
+# setup git-bz parameters
+cd ~/src
+git config bz.default-tracker bugs.koha-community.org
+git config --global bz-tracker.bugs.koha-community.org.path /bugzilla3
+git config bz.default-product Koha
+git config --global bz-tracker.bugs.koha-community.org.bz-user YOURLOGIN
+git config --global bz-tracker.bugs.koha-community.org.bz-password YOURPASSWORD
+
+# UPDATE sandbox.cron to define the database name
+# (see line 23)
+
+# you can now test the sandbox system
+http://your.koha.url/cgi-bin/koha/sandbox.pl
+
+# after submitting the form, on /tmp, you should see a /tmp/sandbox file
+# that is not null and contains the informations you've just filled
+
+# your koha user MUST be partially sudoer
+#in /etc/sudoers, add
+koha            ALL=(ALL) NOPASSWD: /bin/rm /tmp/sandbox
+# if you don't have this line, the /tmp/sandbox file won't be deleted, and every minute, the cron will be restarted.
+# Expect some trouble !!!
+

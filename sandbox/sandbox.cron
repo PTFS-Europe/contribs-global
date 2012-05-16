@@ -1,0 +1,112 @@
+#!/usr/bin/perl
+
+# Copyright BibLibre, 2012
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+use Mail::Sendmail;
+use C4::Context;
+
+# enter the name of your mySQL database here
+my $databasename = 'test1';
+
+open( sdbtmp, '</tmp/sandbox' );
+my $line = <sdbtmp>;
+(my $bugzilla,$database,$emailaddress,$translations) = split /\|/,$line;
+exit unless $bugzilla;
+# immediatly remove the file, to avoid cron running it twice
+`sudo rm /tmp/sandbox`;
+$emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
+my $checkout = `git checkout master;git branch -D test;git checkout -b test`;
+my $gitbz;
+unless ($bugzilla eq 'master') {
+    $gitbz = `git bz apply $bugzilla <yyyy`;
+    # test if things went well or no:
+    if ($gitbz =~ /git am --skip/) {
+        $gitbz="<h1>Something went wrong !</h1>$gitbz";
+        $gitbz=~ s/\n/<br\/>\n/g;
+        my $cancel = `git am --abort`;
+        # if something went wrong, checkout any file modified
+        my $checkout = `git status -s`;
+        foreach (split /\n/, $checkout) {
+            my $file_to_checkout = $_;
+            next if $file_to_checkout =~ /^\?\?/;
+            $file_to_checkout =~ s/^ M //;
+            `git checkout $file_to_checkout`;
+        }
+    }
+}
+
+# install translations if asked for
+chop $translations;
+if ($translations) {
+    $gitbz .="<br/>=== translation installation ===<br/>";
+    $gitbz .=`cd misc/translator;./translate install $translations`;
+}
+# do nothing to the mysqldatabase if the user requested that.
+unless ($database==-1) {
+    my $mysql = `mysql -e "drop database $databasename;create database $databasename;"`;
+}
+if ($database) {
+    if ($database==1) {
+        $mysql = `mysql $databasename <sandbox1.sql`;
+    }
+    if ($database==2) {
+        $mysql = `mysql $databasename <sandbox2.sql`;
+    }
+    # TODO = SQL UPDATE to all dates (expiry, return, holds,...) to have correct datas in the database
+    # now fill the news with some informations
+    my $dbh = C4::Context->dbh;
+    # take number 1 for the patch result.
+    $dbh->do("UPDATE opac_news SET number=number+1");
+    my $sth = $dbh->prepare("INSERT INTO opac_news (title, lang,new,timestamp,expirationdate,number) VALUES (?,'koha', ?,'2012-01-01','2099-01-01',1)");
+    $sth->execute("Sandbox setup by ".($emailaddress?$emailaddress:"unknown")." with database $database and bug $bugzilla on ".scalar(localtime),$gitbz);
+    # OK, now try to guess how "old" is our database, to update some dates.
+    # 1st we find when the last checkout has been made. We will then add this duration to many date fields in many tables
+    # thus, if you setup this database, even in 1 year, patrons won't have their subscription expired, all items checked out won't be late,...
+    $sth = $dbh->prepare("SELECT DATEDIFF(CURDATE(),max(issuedate)) FROM issues");
+    $sth->execute;
+    my ($delay) = $sth->fetchrow;
+    if ($delay) {
+        $dbh->do("UPDATE issues SET issuedate=DATE_ADD(issuedate,INTERVAL $delay DAY), date_due=DATE_ADD(date_due,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE old_issues SET issuedate=DATE_ADD(issuedate,INTERVAL $delay DAY), date_due=DATE_ADD(date_due,INTERVAL $delay DAY),returndate=DATE_ADD(returndate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqbudgetperiods SET budget_period_startdate=DATE_ADD(budget_period_startdate,INTERVAL $delay DAY), budget_period_enddate=DATE_ADD(budget_period_enddate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqbasket SET creationdate=DATE_ADD(creationdate,INTERVAL $delay DAY), closedate=DATE_ADD(closedate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqorders SET entrydate=DATE_ADD(entrydate,INTERVAL $delay DAY), datereceived=DATE_ADD(datereceived,INTERVAL $delay DAY),datecancellationprinted=DATE_ADD(datecancellationprinted,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE biblio SET datecreated=DATE_ADD(datecreated,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE borrowers SET dateenrolled=DATE_ADD(dateenrolled,INTERVAL $delay DAY), dateexpiry=DATE_ADD(dateexpiry,INTERVAL $delay DAY),debarred=DATE_ADD(debarred,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE items SET onloan=DATE_ADD(onloan,INTERVAL $delay DAY), datelastseen=DATE_ADD(datelastseen,INTERVAL $delay DAY),datelastborrowed=DATE_ADD(datelastborrowed,INTERVAL $delay DAY),dateaccessioned=DATE_ADD(dateaccessioned,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE old_reserves SET reservedate=DATE_ADD(reservedate,INTERVAL $delay DAY), notificationdate=DATE_ADD(notificationdate,INTERVAL $delay DAY),reminderdate=DATE_ADD(reminderdate,INTERVAL $delay DAY),cancellationdate=DATE_ADD(cancellationdate,INTERVAL $delay DAY),waitingdate=DATE_ADD(waitingdate,INTERVAL $delay DAY),expirationdate=DATE_ADD(expirationdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE reserves SET reservedate=DATE_ADD(reservedate,INTERVAL $delay DAY), notificationdate=DATE_ADD(notificationdate,INTERVAL $delay DAY),reminderdate=DATE_ADD(reminderdate,INTERVAL $delay DAY),cancellationdate=DATE_ADD(cancellationdate,INTERVAL $delay DAY),waitingdate=DATE_ADD(waitingdate,INTERVAL $delay DAY),expirationdate=DATE_ADD(expirationdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE reviews SET datereviewed=DATE_ADD(datereviewed,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE serial SET planneddate=DATE_ADD(planneddate,INTERVAL $delay DAY), publisheddate=DATE_ADD(publisheddate,INTERVAL $delay DAY),claimdate=DATE_ADD(claimdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE statistics SET datetime=DATE_ADD(datetime,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE subscription SET startdate=DATE_ADD(startdate,INTERVAL $delay DAY), firstacquidate=DATE_ADD(firstacquidate,INTERVAL $delay DAY),enddate=DATE_ADD(enddate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE suggestions SET accepteddate=DATE_ADD(accepteddate,INTERVAL $delay DAY), suggesteddate=DATE_ADD(suggesteddate,INTERVAL $delay DAY),manageddate=DATE_ADD(manageddate,INTERVAL $delay DAY),rejecteddate=DATE_ADD(rejecteddate,INTERVAL $delay DAY)");
+    }
+}
+
+# now, updating database if needed
+`installer/data/mysql/updatedatabase.pl`;
+
+unless ($database==-1) {
+    # now reindex zebra (biblio and authorities)
+    `misc/migration_tools/rebuild_zebra.pl -a -b -r`;
+}
+
+# everything is done, if we have an email, send the result
+if ( $emailaddress ) {
+    `echo "The sandbox you've requested is now ready. The patches attached to bugzilla $bugzilla have been applied, and the result is\n$gitbz\nIf you use this system for the 1st time, you may find usefull to reach the wiki page http://wiki.koha-community.org/wiki/Sandboxes to have some information about those results, to check if everything went well & if you can test the patch properly" | mail -s "sandbox ready !" $emailaddress`;
+}

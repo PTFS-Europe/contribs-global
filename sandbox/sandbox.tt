@@ -1,0 +1,42 @@
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+<title>Koha sandbox setup</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="/intranet-tmpl/prog/en/includes/favicon.ico" type="image/x-icon" />
+<link rel="stylesheet" type="text/css" href="/intranet-tmpl/prog/en/css/staff-global.css" />
+<style type="text/css">
+label {
+  text-align: right;
+  width: 150px;
+  display: block;
+  float: left;
+  clear: left;
+  margin-right: 3px;
+  cursor: pointer
+}
+</style>
+</head>
+<body>
+<h1>Welcome to the Koha sandbox tester</h1>
+<p>The current setup on this sandbox is = <b>[%lastcreated%]</b></p>
+<p>This tool is dedicated to testing <a href="http://koha-community.org">Koha</a> patches. See <a href="http://wiki.koha-community.org/wiki/Sandboxes">Koha wiki</a> for more informations</p>
+<form action="sandbox.pl">
+    <p><label for="bugzilla">bugzilla number</label><input type="text" name="bugzilla"/></p>
+    <p><label for="mailaddress">Your mail address</label><input type="text" name="mailaddress"/> (optional)</p>
+    <p><label for="translations">Translations</label><input type="text" name="translations" value="fr-FR" /> (optional</p>
+    <ul>
+    <p>Database:</p>
+    <ul>
+    <li><input name="database" type="radio" value="-1"/>No change (-1)</li>
+    <li><input name="database" type="radio" value=""/>No database (run webinstaller) (0)</li>
+    <li><input name="database" type="radio" value="1"/>MARC21, tiny dataset (1)</li>
+    <li><input name="database" type="radio" value="2"/>UNIMARC, public library (2) </li>
+    </ul>
+    </ul>
+    <p><label for="koha">Anti-spam</label><input type="text" name="koha"/> (Enter the name of your prefered ILS, it's the 4th word on this page, in case you hesitate ! If you don't do it, nothing will happen when you submit the form)</p>
+    <p><input type="submit" value="OK"/></p>
+    [% IF done %]<p>Request sent. It should be done in a minut or two. Check your mailbox if you've provided your email address</p>[% END %]
+</form>
+</body>
+</html>

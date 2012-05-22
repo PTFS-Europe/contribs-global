@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<window
+    id="koct-window"
+    title="Koha Offline Circulation Tool"
+    persist="screenX screenY"
+    width="500"
+    height="400"
+    onload="onReady()"
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    <script src="script.js" />
+    <tabbox flex="1">
+        <tabs>
+            <tab label="Check Out" accesskey="o" />
+            <tab label="Check In" accesskey="i" />
+            <tab label="Log" accesskey="l" onclick="updateTree()" />
+            <tab label="Param" />
+        </tabs>
+        <tabpanels flex="1">
+            <tabpanel id="issuetab">
+                <vbox flex="1">
+                    <hbox flex="1">
+                        <vbox flex="1">
+                            <label control="issuepatronbarcode" value="Patron Barcode:" />
+                            <textbox id="issuepatronbarcode" tabindex="1" onkeypress="checkReturn(event,'issueitembarcode', false)" />
+                            <label control="issueitembarcode" value="Item Barcode:" />
+                            <textbox id="issueitembarcode" tabindex="2" onkeypress="checkReturn(event,'issuesave', 'issue')" />
+                        </vbox>
+                        <!--<vbox>
+                            <label control="issuedate" value="Expected Return:" />
+                            <datepicker id="issuedate" type="grid" />
+                        </vbox>-->
+                    </hbox>
+                    <button id="issuesave" label="Save" tabindex="3" oncommand="save('issue')" />
+                </vbox>
+            </tabpanel>
+            <tabpanel id="returntab">
+                <vbox flex="1">
+                    <vbox flex="1">
+                        <label control="returnitembarcode" value="Item Barcode:" />
+                        <textbox id="returnitembarcode" tabindex="1" onkeypress="checkReturn(event,'returnsave', 'return')" />
+                    </vbox>
+                    <button id="returnsave" tabindex="2" label="Save" oncommand="save('return')" />
+                </vbox>
+            </tabpanel>
+            <tabpanel id="logtab">
+                <vbox flex="1">
+                    <tree id="tree1" flex="1" hidecolumnpicker="true" seltype="single" onselect="setText('tree1','value1');" >
+                        <treecols>
+                            <treecol flex="1" label="Timestamp" />
+                            <treecol flex="1" label="Action" />
+                            <treecol flex="1" label="Card Number" />
+                            <treecol flex="1" label="Barcode" />
+                            <treecol flex="1" label="Status" />
+                        </treecols>
+                        <treechildren id="treechildren">
+                        </treechildren>
+                    </tree>
+                    <hbox>
+                        <button label="Commit to Koha" oncommand="commit(true)" />
+                        <button label="Apply directly" oncommand="commit(false)" />
+                        <button label="Clear" oncommand="clear()" />
+                    </hbox>
+                </vbox>
+            </tabpanel>
+            <tabpanel id="paramtab">
+                <vbox onkeyup="savePreferences()" onchange="savePreferences()" oncommand="savePreferences()">
+                    <label control="server" value="Server:" />
+                    <textbox id="server" />
+                    <label control="branchcode" value="Branch Code:" />
+                    <textbox id="branchcode" />
+                    <label control="username" value="Username:" />
+                    <textbox id="username" />
+                    <label control="password" value="Password:" />
+                    <textbox id="password" type="password" />
+                </vbox>
+            </tabpanel>
+        </tabpanels>
+    </tabbox>
+    <statusbar>
+        <statusbarpanel flex="1" />
+        <statusbarpanel id="status" />
+    </statusbar>
+</window>

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<overlay id="koct" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    <statusbar id="status-bar">
+        <statusbarpanel image="chrome://koct/content/koct-window.png" class="statusbarpanel-iconic" onclick="window.open('chrome://koct/content/main.xul','main','centerscreen,chrome,resizable');"/>
+    </statusbar>
+</overlay>

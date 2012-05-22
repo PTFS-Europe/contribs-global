@@ -1,2 +1,10 @@
-This repository is for general contributions
-to Koha.
+This repository is for general contributions to Koha.
+
+- sandbox:
+The sandbox system has been developed with the goal to lower the barrier for librarian to test patches and improvements of Koha.
+http://wiki.koha-community.org/wiki/Sandboxes
+
+- koct:
+Koha Offline Circulation Firefox addon
+http://wiki.koha-community.org/wiki/Offline_circulation_firefox_plugin
+https://addons.mozilla.org/fr/firefox/addon/koct/

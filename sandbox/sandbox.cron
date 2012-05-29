@@ -29,8 +29,8 @@ exit unless $bugzilla;
 # immediatly remove the file, to avoid cron running it twice
 `sudo rm /tmp/sandbox`;
 $emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
-my $checkout = `git checkout master;git branch -D test;git checkout -b test`;
-my $gitbz;
+my $checkout = `git am --abort;git reset --hard;git clean -d -f;git checkout master;git branch -D test;git checkout -b test`;
+my $gitbz='';
 unless ($bugzilla eq 'master') {
     $gitbz = `git bz apply $bugzilla <yyyy`;
     # test if things went well or no:

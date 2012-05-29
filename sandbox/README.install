@@ -13,7 +13,7 @@ cp /home/koha/contrib/sandbox/* /home/koha/src
 Update your crontab.
 Your crontab should look like this:
 # who should I mail?
-MAILTO=paul.poulain@biblibre.com
+MAILTO=your.email@address.for.sysop
 # add /home/koha/bin, where git-bz will be stored
 PATH=/home/koha/bin:/usr/local/bin:/usr/bin:/bin
 # Koha conf
@@ -27,8 +27,9 @@ PERL5LIB=/home/koha/src
 15 1 * * * cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
 
 # every minute, check if there is a sandbox to install
-* * * * * cd /home/koha/src;./sandbox.cron
-
+* * * * * cd /home/koha/src;./sandbox.cron -d mysql_database_name
+# every minute, check if there is a patch to signoff
+* * * * * cd /home/koha/src;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
 
 # retrieve git bz
 git clone git://gitorious.org/~slef/git-bz/slefs-git-bz.git git-bz
@@ -53,9 +54,6 @@ git config bz.default-product Koha
 git config --global bz-tracker.bugs.koha-community.org.bz-user YOURLOGIN
 git config --global bz-tracker.bugs.koha-community.org.bz-password YOURPASSWORD
 
-# UPDATE sandbox.cron to define the database name
-# (see line 23)
-
 # you can now test the sandbox system
 http://your.koha.url/cgi-bin/koha/sandbox.pl
 
@@ -65,6 +63,36 @@ http://your.koha.url/cgi-bin/koha/sandbox.pl
 # your koha user MUST be partially sudoer
 #in /etc/sudoers, add
 koha            ALL=(ALL) NOPASSWD: /bin/rm /tmp/sandbox
-# if you don't have this line, the /tmp/sandbox file won't be deleted, and every minute, the cron will be restarted.
+koha            ALL=(ALL) NOPASSWD: /bin/rm /tmp/signoff
+
+# if you don't have this line, the files won't be deleted, and every minute, the crons will be restarted.
 # Expect some trouble !!!
+
+Setup signoff-tool
+
+With sandbox version 2, users will be able to signoff directly from the web interface.
+A Perl library must be installed in order for this feature to work:
+sudo apt-get install libwww-bugzilla-perl
+
+This library handles only default bugzilla status (ASSIGNED, RESOLVED...), so can't handle the "SIGNED OFF" status
+You must tweak this library:
+sudo vi /usr/share/perl5/WWW/Bugzilla.pm
+Update the :
+    my %status = (
+            'ASSIGNED'  => 'accept',
+            'REOPENED'    => 'reopen',
+            'VERIFIED'  => 'verify',
+            'CLOSED'    => 'close'
+            );
+to have:
+    my %status = (
+            'ASSIGNED'  => 'accept',
+            'REOPENED'    => 'reopen',
+            'VERIFIED'  => 'verify',
+            'CLOSED'    => 'close',
+            'SIGNED OFF'=> 'Signed Off',
+            );
+
+that should work !
+
 

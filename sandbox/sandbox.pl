@@ -22,11 +22,14 @@ use C4::Context;
 use Template;
 use Template::Constants qw( :debug );
 
-my $query = CGI->new;
-my $bugzilla=$query->param('bugzilla');
-my $database = $query->param('database');
-my $mailaddress= $query->param('mailaddress');
-my $translations = $query->param('translations');
+my $query          = CGI->new;
+my $bugzilla       = $query->param('bugzilla');
+my $database       = $query->param('database');
+my $mailaddress    = $query->param('mailaddress');
+my $translations   = $query->param('translations');
+my $signoff_email  = $query->param('signoff_email');
+my $signoff_name   = $query->param('signoff_name');
+my $signoff_number = $query->param('signoff_number');
 
 my $template = Template->new();
 my $templatevars;
@@ -46,6 +49,14 @@ if ($bugzilla && lc($query->param('koha')) eq 'koha') {
     close(sdbtmp);
     chmod 0666, "/tmp/sandbox";
     $templatevars->{done} = 1;
+}
+if ($signoff_number && $signoff_email && lc($query->param('koha')) eq 'koha') {
+    # OK, we must signoff save a file with informations
+    open( sdbtmp, '>/tmp/signoff');
+    print sdbtmp $signoff_number.'|'.$signoff_email.'|'.($signoff_name?$signoff_name:$signoff_email);
+    close(sdbtmp);
+    chmod 0666, "/tmp/signoff";
+    $templatevars->{signoff_done} = 1;
 }
 print $query->header();
 $template->process("sandbox.tt",$templatevars);

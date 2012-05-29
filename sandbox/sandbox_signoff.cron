@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+
+# Copyright BibLibre, 2012
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+use WWW::Bugzilla;
+use Modern::Perl;
+use Getopt::Long;
+
+use Mail::Sendmail;
+use C4::Context;
+
+use Data::Dumper;
+# check how many attachments we have. If we have more than 1, then do nothing. Otherwise, obsolete it.
+my $login='';
+my $password='';
+my $server = '';
+GetOptions( 'u:s'              => \$login,
+            'p:s'              => \$password,
+            's:s'            => \$server,
+       );
+$server = "bugs.koha-community.org/bugzilla3/" unless $server;
+
+unless ($login && $password) {
+    die "You must provide Bugzilla login and password ( -u login -p password )";
+}
+
+open( SDBTMP, '</tmp/signoff' );
+my $line = <SDBTMP>;
+my ($bugzilla,$emailaddress,$name);
+($bugzilla,$emailaddress,$name) = split /\|/,$line;
+$emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
+
+die "The /tmp/signoff does not contain a bug number" unless $bugzilla;
+
+my $total=0;
+my $patch_to_obsolete;
+# immediatly remove the file, to avoid cron running it twice
+#`sudo rm /tmp/signoff`;
+# connect to bugzilla
+my $bz = WWW::Bugzilla->new ( server => $server,
+                                email => $login,
+                                password => $password,
+                                bug_number => $bugzilla,
+                            );
+$bz->change_status("Signed Off");
+$bz->additional_comments("Patch tested with a sandbox, by $name <$emailaddress>");
+$bz->commit;
+# parse all attachments, try to guess if it's a patch, and, if there is only 1 patch, obsolete it
+foreach my $attachment ($bz->list_attachments()) {
+    unless ($attachment->{obsolete}) {
+        warn "RETRIEVING : ".$attachment->{id};
+        my $bzpatch = $bz->get_attachment('id' => $attachment->{id});
+        if ( $bzpatch =~ /diff --git/ && $bzpatch =~ /index/) {
+            warn "Attachment ".$attachment->{id}."is a patch";
+            $total++;
+            $patch_to_obsolete = $attachment->{id};
+        }
+    }
+}
+if ($total ==1) {
+    warn "obsoleting attachment";
+    $bz->obsolete_attachment('id' => $patch_to_obsolete);
+} else {
+    warn "$total attachment, not obsoleting anything";
+}
+
+my $git_config = `git config --global user.name "$name"; git config --global user.email "$emailaddress";git commit --amend -s --reuse-message=HEAD`;
+my $git_attach = `yes|git bz attach $bugzilla HEAD`;
+
+# everything is done, if we have an email, send the result
+if ( $emailaddress ) {
+    my $message = "Bug $bugzilla has been signed-off.\n";
+    if ($total == 1) {
+        $message .= "There was only one patch attached to the bug, it has been marked obsolete, everything is done\n";
+    } else {
+        $message .= "There more than one patch attached to the bug, you must go to http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=$bugzilla and mark obsolete the patch that has been uploaded and signed-off\n";
+    }
+    `echo  | mail -s "Patch for bug $bugzilla signed-off" $emailaddress`;
+}

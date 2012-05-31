@@ -38,13 +38,16 @@ unless ($login && $password) {
     die "You must provide Bugzilla login and password ( -u login -p password )";
 }
 
+exit unless -e '/tmp/signoff';
+
 open( SDBTMP, '</tmp/signoff' );
 my $line = <SDBTMP>;
 my ($bugzilla,$emailaddress,$name);
 ($bugzilla,$emailaddress,$name) = split /\|/,$line;
-$emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
+$emailaddress =~ s/"|`|'|\[|\*|\?|\\]//g; # remove any character that has nothing to do in a mail and will break SQL insert
+$name =~ s/"|`|'|\[|\*|\?|\\]//g; # remove any  that has nothing to do in a mail and will break SQL insert
 
-die "The /tmp/signoff does not contain a bug number" unless $bugzilla;
+exit unless $bugzilla;
 
 my $total=0;
 my $patch_to_obsolete;
@@ -62,20 +65,15 @@ $bz->commit;
 # parse all attachments, try to guess if it's a patch, and, if there is only 1 patch, obsolete it
 foreach my $attachment ($bz->list_attachments()) {
     unless ($attachment->{obsolete}) {
-        warn "RETRIEVING : ".$attachment->{id};
         my $bzpatch = $bz->get_attachment('id' => $attachment->{id});
         if ( $bzpatch =~ /diff --git/ && $bzpatch =~ /index/) {
-            warn "Attachment ".$attachment->{id}."is a patch";
             $total++;
             $patch_to_obsolete = $attachment->{id};
         }
     }
 }
 if ($total ==1) {
-    warn "obsoleting attachment";
     $bz->obsolete_attachment('id' => $patch_to_obsolete);
-} else {
-    warn "$total attachment, not obsoleting anything";
 }
 
 my $git_config = `git config --global user.name "$name"; git config --global user.email "$emailaddress";git commit --amend -s --reuse-message=HEAD`;
@@ -89,5 +87,5 @@ if ( $emailaddress ) {
     } else {
         $message .= "There more than one patch attached to the bug, you must go to http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=$bugzilla and mark obsolete the patch that has been uploaded and signed-off\n";
     }
-    `echo  | mail -s "Patch for bug $bugzilla signed-off" $emailaddress`;
+    `echo "$message" | mail -s "Patch for bug $bugzilla signed-off" $emailaddress`;
 }

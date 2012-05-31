@@ -22,6 +22,12 @@ use C4::Context;
 use Template;
 use Template::Constants qw( :debug );
 
+# This script display a webpage that the user can fill to request a sandbox with a patch applied, or signoff a patch previously applied
+# If the user requested a sandbox, a file is written in /tmp/sandbox, with bugzillanumber|the database to setup|the tester email|the translation requested
+# If the user requested a signoff, a file is written in /tmp/signoff with the bugzilla number|the tester email|the tester name
+
+# Both /tmp/sandbox and /tmp/signoff are managed by a cronjob that is run every minute and delete them after setting the sandbox/signing-off the patch
+
 my $query          = CGI->new;
 my $bugzilla       = $query->param('bugzilla');
 my $database       = $query->param('database');

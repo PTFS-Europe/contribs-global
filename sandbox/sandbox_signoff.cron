@@ -24,7 +24,13 @@ use Mail::Sendmail;
 use C4::Context;
 
 use Data::Dumper;
-# check how many attachments we have. If we have more than 1, then do nothing. Otherwise, obsolete it.
+# This script is working with sandbox.pl script, and will sign-off a patch and upload it to bugzilla
+# it reads the file /tmp/signoff, and, if this file exists:
+#   - check how many attachments we have to the provided bugnumber. If we have more than 1, then do nothing. Otherwise, obsolete it.
+#   - attach the top patch to the bug
+#   - change the bug status to "Signed off"
+#   - send a mail to the user to say that everything has been done, or that he must obsolete manually (in case of a multiple patches bug)
+
 my $login='';
 my $password='';
 my $server = '';
@@ -52,7 +58,7 @@ exit unless $bugzilla;
 my $total=0;
 my $patch_to_obsolete;
 # immediatly remove the file, to avoid cron running it twice
-#`sudo rm /tmp/signoff`;
+`sudo rm /tmp/signoff`;
 # connect to bugzilla
 my $bz = WWW::Bugzilla->new ( server => $server,
                                 email => $login,

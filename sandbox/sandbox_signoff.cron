@@ -50,8 +50,9 @@ open( SDBTMP, '</tmp/signoff' );
 my $line = <SDBTMP>;
 my ($bugzilla,$emailaddress,$name);
 ($bugzilla,$emailaddress,$name) = split /\|/,$line;
-$emailaddress =~ s/"|`|'|\[|\*|\?|\\]//g; # remove any character that has nothing to do in a mail and will break SQL insert
-$name =~ s/"|`|'|\[|\*|\?|\\]//g; # remove any  that has nothing to do in a mail and will break SQL insert
+$emailaddress = shell_escape($emailaddress);
+$name = shell_escape($name);
+$bugzilla = shell_escape($bugzilla);
 
 exit unless $bugzilla;
 
@@ -94,4 +95,11 @@ if ( $emailaddress ) {
         $message .= "There more than one patch attached to the bug, you must go to http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=$bugzilla and mark obsolete the patch that has been uploaded and signed-off\n";
     }
     `echo "$message" | mail -s "Patch for bug $bugzilla signed-off" $emailaddress`;
+}
+
+# sub to clean shell special characters (security issue)
+sub shell_escape {
+    my ($var) = @_;
+    $var =~ s/[<>\|;\(\)&\\"'#\$`~\{\}\*\?\[]//g;
+    return $var;
 }

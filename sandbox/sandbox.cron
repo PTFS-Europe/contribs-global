@@ -26,9 +26,15 @@ open( sdbtmp, '</tmp/sandbox' );
 my $line = <sdbtmp>;
 (my $bugzilla,$database,$emailaddress,$translations) = split /\|/,$line;
 exit unless $bugzilla;
+# security issues
+$emailaddress = shell_escape($emailaddress);
+$name = shell_escape($name);
+$bugzilla = shell_escape($bugzilla);
+$database = shell_escape($database);
+$translations = shell_escape($translations);
+
 # immediatly remove the file, to avoid cron running it twice
 `sudo rm /tmp/sandbox`;
-$emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
 my $checkout = `git am --abort;git reset --hard;git clean -d -f;git checkout master;git branch -D test;git checkout -b test`;
 my $gitbz='';
 unless ($bugzilla eq 'master') {
@@ -109,4 +115,11 @@ unless ($database==-1) {
 # everything is done, if we have an email, send the result
 if ( $emailaddress ) {
     `echo "The sandbox you've requested is now ready. The patches attached to bugzilla $bugzilla have been applied, and the result is\n$gitbz\nIf you use this system for the 1st time, you may find usefull to reach the wiki page http://wiki.koha-community.org/wiki/Sandboxes to have some information about those results, to check if everything went well & if you can test the patch properly" | mail -s "sandbox ready !" $emailaddress`;
+}
+
+# sub to clean shell special characters (security issue)
+sub shell_escape {
+    my ($var) = @_;
+    $var =~ s/[<>\|;\(\)&\\"'#\$`~\{\}\*\?\[]//g;
+    return $var;
 }

@@ -5,7 +5,7 @@
 
   <Description about="urn:mozilla:install-manifest">
     <em:id>koct@koha.fr</em:id>
-    <em:version>0.2.2</em:version>
+    <em:version>0.2.3</em:version>
     <em:type>2</em:type>
 
     <!-- Target Application this extension can install into,
@@ -14,7 +14,7 @@
       <Description>
         <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
         <em:minVersion>1.5</em:minVersion>
-        <em:maxVersion>3.6.*</em:maxVersion>
+        <em:maxVersion>12</em:maxVersion>
       </Description>
     </em:targetApplication>
 
@@ -23,7 +23,7 @@
     <em:name>KOCT</em:name>
     <em:description>Koha Offline Circulation Tool</em:description>
     <em:creator>BibLibre</em:creator>
-    <em:developer>Jean-André Santoni; Claire Hernandez</em:developer>
+    <em:developer>Jean-André Santoni; Claire Hernandez; François Charbonnier; Jonathan Druart</em:developer>
     <em:homepageURL>http://www.biblibre.com/</em:homepageURL>
   </Description>
 </RDF>

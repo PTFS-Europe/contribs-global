@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Koha Offline Circulation Tool">
+<!ENTITY koct.checkout      "Check out">
+<!ENTITY koct.checkin       "Check in">
+<!ENTITY koct.log           "Log">
+<!ENTITY koct.param         "Param">
+<!ENTITY koct.patron_barcode "Patron Barcode:">
+<!ENTITY koct.item_barcode  "Item Barcode:">
+<!ENTITY koct.save          "Save">
+<!ENTITY koct.timestamp     "Timestamp">
+<!ENTITY koct.action        "Action">
+<!ENTITY koct.cardnumber    "Card number">
+<!ENTITY koct.barcode       "Barcode">
+<!ENTITY koct.status        "Status">
+<!ENTITY koct.commit        "Commit to Koha">
+<!ENTITY koct.apply         "Apply directly">
+<!ENTITY koct.clear         "Clear">
+<!ENTITY koct.server        "Server:">
+<!ENTITY koct.branchcode    "Branch code:">
+<!ENTITY koct.username      "Username:">
+<!ENTITY koct.password      "Password:">

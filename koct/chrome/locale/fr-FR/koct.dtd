@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Module Koha de prêt secouru">
+<!ENTITY koct.checkout      "Prêt">
+<!ENTITY koct.checkin       "Retour">
+<!ENTITY koct.log           "Transactions">
+<!ENTITY koct.param         "Paramétrage">
+<!ENTITY koct.patron_barcode "Code-barres lecteur:">
+<!ENTITY koct.item_barcode  "Code-barres exemplaire:">
+<!ENTITY koct.save          "Sauvegarder">
+<!ENTITY koct.timestamp     "Date/Heure">
+<!ENTITY koct.action        "Action">
+<!ENTITY koct.cardnumber    "Numéro de carte">
+<!ENTITY koct.barcode       "Exemplaire">
+<!ENTITY koct.status        "Statut">
+<!ENTITY koct.commit        "Envoyer à Koha">
+<!ENTITY koct.apply         "Appliquer directement">
+<!ENTITY koct.clear         "Effacer">
+<!ENTITY koct.server        "Serveur:">
+<!ENTITY koct.branchcode    "Code bibliothèque:">
+<!ENTITY koct.username      "Identifiant:">
+<!ENTITY koct.password      "Mot de passe:">

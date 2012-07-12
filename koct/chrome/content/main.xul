@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
-<window
+<!DOCTYPE window SYSTEM "chrome://koct/locale/koct.dtd" >
+<window xmlns:html="http://www.w3.org/1999/xhtml"
     id="koct-window"
-    title="Koha Offline Circulation Tool"
+    title="&koct.title;"
     persist="screenX screenY"
     width="500"
     height="400"
@@ -11,19 +12,19 @@
     <script src="script.js" />
     <tabbox flex="1">
         <tabs>
-            <tab label="Check Out" accesskey="o" />
-            <tab label="Check In" accesskey="i" />
-            <tab label="Log" accesskey="l" onclick="updateTree()" />
-            <tab label="Param" />
+            <tab label="&koct.checkout;" accesskey="o" />
+            <tab label="&koct.checkin;" accesskey="i" />
+            <tab label="&koct.log;" accesskey="l" onclick="updateTree()" />
+            <tab label="&koct.param;" />
         </tabs>
         <tabpanels flex="1">
             <tabpanel id="issuetab">
                 <vbox flex="1">
                     <hbox flex="1">
                         <vbox flex="1">
-                            <label control="issuepatronbarcode" value="Patron Barcode:" />
+                            <label control="issuepatronbarcode" value="&koct.patron_barcode;" />
                             <textbox id="issuepatronbarcode" tabindex="1" onkeypress="checkReturn(event,'issueitembarcode', false)" />
-                            <label control="issueitembarcode" value="Item Barcode:" />
+                            <label control="issueitembarcode" value="&koct.item_barcode;" />
                             <textbox id="issueitembarcode" tabindex="2" onkeypress="checkReturn(event,'issuesave', 'issue')" />
                         </vbox>
                         <!--<vbox>
@@ -31,47 +32,47 @@
                             <datepicker id="issuedate" type="grid" />
                         </vbox>-->
                     </hbox>
-                    <button id="issuesave" label="Save" tabindex="3" oncommand="save('issue')" />
+                    <button id="issuesave" label="&koct.save;" tabindex="3" oncommand="save('issue')" />
                 </vbox>
             </tabpanel>
             <tabpanel id="returntab">
                 <vbox flex="1">
                     <vbox flex="1">
-                        <label control="returnitembarcode" value="Item Barcode:" />
+                        <label control="returnitembarcode" value="&koct.item_barcode;" />
                         <textbox id="returnitembarcode" tabindex="1" onkeypress="checkReturn(event,'returnsave', 'return')" />
                     </vbox>
-                    <button id="returnsave" tabindex="2" label="Save" oncommand="save('return')" />
+                    <button id="returnsave" tabindex="2" label="&koct.save;" oncommand="save('return')" />
                 </vbox>
             </tabpanel>
             <tabpanel id="logtab">
                 <vbox flex="1">
                     <tree id="tree1" flex="1" hidecolumnpicker="true" seltype="single" onselect="setText('tree1','value1');" >
                         <treecols>
-                            <treecol flex="1" label="Timestamp" />
-                            <treecol flex="1" label="Action" />
-                            <treecol flex="1" label="Card Number" />
-                            <treecol flex="1" label="Barcode" />
-                            <treecol flex="1" label="Status" />
+                            <treecol flex="1" label="&koct.timestamp;" />
+                            <treecol flex="1" label="&koct.action;" />
+                            <treecol flex="1" label="&koct.cardnumber;" />
+                            <treecol flex="1" label="&koct.barcode;" />
+                            <treecol flex="1" label="&koct.status;" />
                         </treecols>
                         <treechildren id="treechildren">
                         </treechildren>
                     </tree>
                     <hbox>
-                        <button label="Commit to Koha" oncommand="commit(true)" />
-                        <button label="Apply directly" oncommand="commit(false)" />
-                        <button label="Clear" oncommand="clear()" />
+                        <button label="&koct.commit;" oncommand="commit(true)" />
+                        <button label="&koct.apply;" oncommand="commit(false)" />
+                        <button label="&koct.clear;" oncommand="clear()" />
                     </hbox>
                 </vbox>
             </tabpanel>
             <tabpanel id="paramtab">
                 <vbox onkeyup="savePreferences()" onchange="savePreferences()" oncommand="savePreferences()">
-                    <label control="server" value="Server:" />
+                    <label control="server" value="&koct.server;" />
                     <textbox id="server" />
-                    <label control="branchcode" value="Branch Code:" />
+                    <label control="branchcode" value="&koct.branchcode;" />
                     <textbox id="branchcode" />
-                    <label control="username" value="Username:" />
+                    <label control="username" value="&koct.username;" />
                     <textbox id="username" />
-                    <label control="password" value="Password:" />
+                    <label control="password" value="&koct.password;" />
                     <textbox id="password" type="password" />
                 </vbox>
             </tabpanel>

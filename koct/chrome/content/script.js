@@ -3,6 +3,9 @@ var dbCon;
 
 var rowsadded;
 
+var gBundle = Components.classes["@mozilla.org/intl/stringbundle;1"].getService(Components.interfaces.nsIStringBundleService);
+var words = gBundle.createBundle("chrome://koct/locale/koct.properties");
+
 function onReady() {
     rowsadded = 0;
 
@@ -28,7 +31,7 @@ function onReady() {
     if(statement.row.numrow) {
         var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].getService(Components.interfaces.nsIPromptService);
         var deleteRows = {value: null};
-        if(prompts.confirmCheck(window, "WARNING", "The local database contains "+statement.row.numrow+" entrie(s), do you want to remove them ?", "I want to delete rows", deleteRows)){
+        if(prompts.confirmCheck(window, words.GetStringFromName("warning"), words.GetStringFromName("confirm_delete1")+" "+statement.row.numrow+" " + words.GetStringFromName("confirm_delete2"), words.GetStringFromName("i_want_to_delete"), deleteRows)){
             if (deleteRows.value){
                 dbConn.executeSimpleSQL("DELETE FROM offlinecirc");
             }
@@ -53,11 +56,57 @@ function updateTree() {
         var treerow = document.createElementNS(XUL_NS, "treerow");
         treeitem.appendChild(treerow);
 
-        for each( column in ['timestamp','action','cardnumber','barcode','status'] ) {
-            var treecell = document.createElementNS(XUL_NS, "treecell");
-            treecell.setAttribute("label", eval('statement.row.'+column));
-            treerow.appendChild(treecell);
+        var treecell = document.createElementNS(XUL_NS, "treecell");
+        treecell.setAttribute("label", eval('statement.row.timestamp'));
+        treerow.appendChild(treecell);
+
+        if (statement.row.action=='issue'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('checkout'));
         }
+        else {
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('checkin'));
+        }
+        treerow.appendChild(treecell);
+
+        treecell = document.createElementNS(XUL_NS, "treecell");
+        treecell.setAttribute("label", eval('statement.row.cardnumber'));
+        treerow.appendChild(treecell);
+
+        treecell = document.createElementNS(XUL_NS, "treecell");
+        treecell.setAttribute("label", eval('statement.row.barcode'));
+        treerow.appendChild(treecell);
+
+        if (statement.row.status=='Success.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('success'));
+        }
+        else if (statement.row.status=='Added.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('added'));
+        }
+        else if (statement.row.status=='Authentication failed.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('auth_failed'));
+        }
+        else if (statement.row.status=='Borrower not found.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('cardnumber_wrong'));
+        }
+        else if (statement.row.status=='Item not found.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('item_not_found'));
+        }
+        else if (statement.row.status=='Item not issued.'){
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", words.GetStringFromName('item_not_issued'));
+        }
+        else {
+            treecell = document.createElementNS(XUL_NS, "treecell");
+            treecell.setAttribute("label", eval('statement.row.status'));
+        }
+        treerow.appendChild(treecell);
 
         treechildren.appendChild(treeitem);
     }
@@ -75,7 +124,7 @@ function save(attr) {
             document.getElementById('issuepatronbarcode').value = '';
             document.getElementById('issueitembarcode').value = '';
             document.getElementById('issuepatronbarcode').focus();
-            document.getElementById('status').setAttribute("label",rowsadded+" Row(s) Added");
+            document.getElementById('status').setAttribute("label",rowsadded+" "+words.GetStringFromName('records_added'));
             break;
         case 'return':
             var itembarcode = document.getElementById('returnitembarcode').value;
@@ -83,7 +132,7 @@ function save(attr) {
             rowsadded++;
             document.getElementById('returnitembarcode').value = '';
             document.getElementById('returnitembarcode').focus();
-            document.getElementById('status').setAttribute("label",rowsadded+" Row(s) Added");
+            document.getElementById('status').setAttribute("label",rowsadded+" "+words.GetStringFromName('records_added'));
             break;
     }
 }

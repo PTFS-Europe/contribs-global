@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Koha Herramienta de circulación fuera de línea">
+<!ENTITY koct.checkout      "Prestar">
+<!ENTITY koct.checkin       "Devolver">
+<!ENTITY koct.log           "Registrar">
+<!ENTITY koct.param         "Parámetro">
+<!ENTITY koct.patron_barcode "Código de barra Socio:">
+<!ENTITY koct.item_barcode  "Código de barra Ítem:">
+<!ENTITY koct.save          "Guardar">
+<!ENTITY koct.timestamp     "Fecha y hora">
+<!ENTITY koct.action        "Acción">
+<!ENTITY koct.cardnumber    "Número de socio">
+<!ENTITY koct.barcode       "Código de barras">
+<!ENTITY koct.status        "Estado">
+<!ENTITY koct.commit        "Enviar a Koha">
+<!ENTITY koct.apply         "Aplicar directamente">
+<!ENTITY koct.clear         "Limpiar">
+<!ENTITY koct.server        "Servidor:">
+<!ENTITY koct.branchcode    "Código de sede:">
+<!ENTITY koct.username      "Usuario:">
+<!ENTITY koct.password      "Contraseña:">

@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Koha Circolazione Offline">
+<!ENTITY koct.checkout      "Prstito">
+<!ENTITY koct.checkin       "Restituzione">
+<!ENTITY koct.log           "Log">
+<!ENTITY koct.param         "Param">
+<!ENTITY koct.patron_barcode "Barcode utente:">
+<!ENTITY koct.item_barcode  "Barcode copia:">
+<!ENTITY koct.save          "Salva">
+<!ENTITY koct.timestamp     "Timestamp">
+<!ENTITY koct.action        "Azione">
+<!ENTITY koct.cardnumber    "Numbero tessera">
+<!ENTITY koct.barcode       "Barcode">
+<!ENTITY koct.status        "Status">
+<!ENTITY koct.commit        "Invia a Koha">
+<!ENTITY koct.apply         "Invia direttamente">
+<!ENTITY koct.clear         "Pulisci">
+<!ENTITY koct.server        "Server:">
+<!ENTITY koct.branchcode    "Codice biblioteca:">
+<!ENTITY koct.username      "Login:">
+<!ENTITY koct.password      "Password:">

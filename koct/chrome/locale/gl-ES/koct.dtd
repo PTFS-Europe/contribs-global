@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Ferramenta de préstamo fóra de liña para Koha">
+<!ENTITY koct.checkout      "Préstamo">
+<!ENTITY koct.checkin       "Devolución">
+<!ENTITY koct.log           "Rexistro">
+<!ENTITY koct.param         "Parámetro">
+<!ENTITY koct.patron_barcode "Cód. barras do usuario:">
+<!ENTITY koct.item_barcode  "Cód. barras do exemplar:">
+<!ENTITY koct.save          "Gardar">
+<!ENTITY koct.timestamp     "Data e hora">
+<!ENTITY koct.action        "Acción">
+<!ENTITY koct.cardnumber    "Número de carné">
+<!ENTITY koct.barcode       "Cód. barras">
+<!ENTITY koct.status        "Estado">
+<!ENTITY koct.commit        "Enviar a Koha">
+<!ENTITY koct.apply         "Aplicar directamente">
+<!ENTITY koct.clear         "Limpar">
+<!ENTITY koct.server        "Servidor:">
+<!ENTITY koct.branchcode    "Cód. biblioteca:">
+<!ENTITY koct.username      "Usuario:">
+<!ENTITY koct.password      "Contrasinal:">

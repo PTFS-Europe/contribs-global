@@ -1,0 +1,20 @@
+<!ENTITY koct.title         "Koha Offline-Verbuchung">
+<!ENTITY koct.checkout      "Ausleihe">
+<!ENTITY koct.checkin       "Rückgabe">
+<!ENTITY koct.log           "Log">
+<!ENTITY koct.param         "Parameter">
+<!ENTITY koct.patron_barcode "Benutzer-Barcode:">
+<!ENTITY koct.item_barcode  "Exemplar-Barcode:">
+<!ENTITY koct.save          "Speichern">
+<!ENTITY koct.timestamp     "Zeitstempel">
+<!ENTITY koct.action        "Aktion">
+<!ENTITY koct.cardnumber    "Ausweisnummer">
+<!ENTITY koct.barcode       "Barcode">
+<!ENTITY koct.status        "Status">
+<!ENTITY koct.commit        "An Koha senden">
+<!ENTITY koct.apply         "Direkt anwenden">
+<!ENTITY koct.clear         "Löschen">
+<!ENTITY koct.server        "Server:">
+<!ENTITY koct.branchcode    "Bibliothekscode:">
+<!ENTITY koct.username      "Benutzername:">
+<!ENTITY koct.password      "Passwort:">

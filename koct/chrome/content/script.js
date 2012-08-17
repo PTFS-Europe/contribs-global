@@ -9,8 +9,6 @@ var words = gBundle.createBundle("chrome://koct/locale/koct.properties");
 function onReady() {
     rowsadded = 0;
 
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     restorePreferences();
 
     var file = Components.classes["@mozilla.org/file/directory_service;1"]
@@ -40,8 +38,6 @@ function onReady() {
 }
 
 function updateTree() {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     var treechildren = document.getElementById("treechildren");
     while (treechildren.firstChild) {
         treechildren.removeChild(treechildren.firstChild);
@@ -57,7 +53,7 @@ function updateTree() {
         treeitem.appendChild(treerow);
 
         var treecell = document.createElementNS(XUL_NS, "treecell");
-        treecell.setAttribute("label", eval('statement.row.timestamp'));
+        treecell.setAttribute("label", statement.row.timestamp);
         treerow.appendChild(treecell);
 
         if (statement.row.action=='issue'){
@@ -71,11 +67,11 @@ function updateTree() {
         treerow.appendChild(treecell);
 
         treecell = document.createElementNS(XUL_NS, "treecell");
-        treecell.setAttribute("label", eval('statement.row.cardnumber'));
+        treecell.setAttribute("label", statement.row.cardnumber);
         treerow.appendChild(treecell);
 
         treecell = document.createElementNS(XUL_NS, "treecell");
-        treecell.setAttribute("label", eval('statement.row.barcode'));
+        treecell.setAttribute("label", statement.row.barcode);
         treerow.appendChild(treecell);
 
         if (statement.row.status=='Success.'){
@@ -104,7 +100,7 @@ function updateTree() {
         }
         else {
             treecell = document.createElementNS(XUL_NS, "treecell");
-            treecell.setAttribute("label", eval('statement.row.status'));
+            treecell.setAttribute("label", statement.row.status);
         }
         treerow.appendChild(treecell);
 
@@ -113,8 +109,6 @@ function updateTree() {
 }
 
 function save(attr) {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     switch(attr) {
         case 'issue':
             var patronbarcode = document.getElementById('issuepatronbarcode').value;
@@ -164,7 +158,6 @@ function checkReturn(e, nextFieldName, attr) {
 }
 
 function restorePreferences() {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
         .getService(Components.interfaces.nsIPrefService);
     prefs = prefs.getBranch("extensions.koct.");
@@ -176,7 +169,6 @@ function restorePreferences() {
 }
 
 function savePreferences() {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
         .getService(Components.interfaces.nsIPrefService);
     prefs = prefs.getBranch("extensions.koct.");
@@ -191,8 +183,6 @@ function savePreferences() {
 }
 
 function commit( pending ) {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
     var query = dbConn.createStatement("SELECT * FROM offlinecirc WHERE status='Local.' OR status='Authentication failed.'");
     statement.initialize(query);
@@ -225,8 +215,6 @@ function commit( pending ) {
 }
 
 function clear() {
-    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
     var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
     var query = dbConn.createStatement("SELECT * FROM offlinecirc");
     statement.initialize(query);

@@ -22,9 +22,7 @@ function onReady() {
 
     dbConn.executeSimpleSQL("CREATE TABLE IF NOT EXISTS offlinecirc (timestamp TIMESTAMP, action VARCHAR, cardnumber VARCHAR, barcode VARCHAR, status VARCHAR)");
 
-    var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
-    var query = dbConn.createStatement("SELECT COUNT(*) AS numrow FROM offlinecirc");
-    statement.initialize(query);
+    var statement = dbConn.createStatement("SELECT COUNT(*) AS numrow FROM offlinecirc");
     statement.step();
     if(statement.row.numrow) {
         var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].getService(Components.interfaces.nsIPromptService);
@@ -43,9 +41,7 @@ function updateTree() {
         treechildren.removeChild(treechildren.firstChild);
     }
 
-    var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
-    var query = dbConn.createStatement("SELECT * FROM offlinecirc");
-    statement.initialize(query);
+    var statement = dbConn.createStatement("SELECT * FROM offlinecirc");
     while (statement.step()) {
         var treeitem = document.createElementNS(XUL_NS, "treeitem");
 
@@ -183,9 +179,7 @@ function savePreferences() {
 }
 
 function commit( pending ) {
-    var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
-    var query = dbConn.createStatement("SELECT * FROM offlinecirc WHERE status='Local.' OR status='Authentication failed.'");
-    statement.initialize(query);
+    var statement = dbConn.createStatement("SELECT * FROM offlinecirc WHERE status='Local.' OR status='Authentication failed.'");
 
     var url = document.getElementById('server').value+"/cgi-bin/koha/offline_circ/service.pl";
 
@@ -215,9 +209,7 @@ function commit( pending ) {
 }
 
 function clear() {
-    var statement = Components.classes['@mozilla.org/storage/statement-wrapper;1'].createInstance(Components.interfaces.mozIStorageStatementWrapper);
-    var query = dbConn.createStatement("SELECT * FROM offlinecirc");
-    statement.initialize(query);
+    var statement = dbConn.createStatement("SELECT * FROM offlinecirc");
 
     dbConn.executeSimpleSQL("DELETE FROM offlinecirc");
     updateTree();

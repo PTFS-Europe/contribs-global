@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+# Copyright 2013 Equinox Software, Inc.
+#
+# Author: Galen Charlton <gmc@esilibrary.com>
+#
+# This program is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along 
+# with this program; if not, see <http://www.gnu.org/licenses>.
+
+use strict;
+use warnings;
+
+use Cache::Memcached;
+
+unless ($#ARGV == 0 && $ARGV[0] =~ /^[^:]+:(\d+)$/) {
+    print "Delete all cached Koha MARC frameworks from memcached\n";
+    print "\n";
+    print "This script exists because Memoize::Memcached inserts a\n";
+    print "control character in the keys used when it caches a MARC\n";
+    print "framework that the command-line mem[c]dump and mem[c]rm tools\n";
+    print "neither print nor recognize.\n";
+    print "\n";
+    print "NOTE: this affects *all* Koha instances that share the memcached server\n";
+    print "\n";
+    print "usage: $0 memcacheserver:memcacheport\n";
+    exit 1;
+};
+
+my $server = $ARGV[0];
+
+my $cache = Cache::Memcached->new(servers => [ $server ]) ;
+my $slabs = $cache->stats(['slabs']);
+my @slabs = map { /^STAT (\d+)/; $1 }
+            grep { /^STAT (\d+):chunk_size/ }
+            split /\n/, $slabs->{'hosts'}->{$server}->{'slabs'}, -1;
+
+foreach my $slab (@slabs) {
+    my $stats_key = "cachedump $slab 1000";
+    my $items = $cache->stats([$stats_key]);
+    next unless $items->{'hosts'}->{$server}->{$stats_key} =~ /GetMarcStructure/;
+    my @keys = map { /^ITEM ([^ ]+) /; $1 }
+               grep { /GetMarcStructure/ }
+               split /\n/, $items->{'hosts'}->{$server}->{$stats_key}, -1;
+    foreach my $key (@keys) {
+        print "Deleting key $key\n";
+        $cache->delete($key);
+    }
+}

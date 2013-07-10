@@ -2,13 +2,34 @@
 git clone git://git.koha-community.org/contrib/global.git /home/koha/contrib
 
 # uncompress .sample databases
+cd contrib/sandbox/sql
 gzip -d sandbox*.sql.gz
+git checkout checkout sandbox1.sql.gz
+git checkout checkout sandbox2.sql.gz
 
 # go to koha and update it
 cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
-# copy files from contrib repo to koha:
-cp /home/koha/contrib/sandbox/* /home/koha/src
-# (the sandbox files should be in your main KOHA directory)
+# link files from contrib repo to koha:
+mkdir -p sandbox/templates
+mkdir -p sandbox/sql
+ln -s /home/koha/contrib/sandbox/sandbox.pl sandbox.pl
+cd /home/koha/src/sandbox/templates
+ln -s /home/koha/contrib/sandbox/templates/sandbox.tt sandbox.tt
+cd /home/koha/src/sandbox/sql
+ln -s /home/koha/contrib/sandbox/sql/sandbox1.sql sandbox1.sql
+ln -s /home/koha/contrib/sandbox/sql/sandbox2.sql sandbox2.sql
+cd /home/koha/src/sandbox/cron
+ln -s /home/koha/contrib/sandbox/cron/sandbox.cron sandbox.cron
+ln -s /home/koha/contrib/sandbox/cron/sandbox_signoff.cron sandbox_signoff.cron
+
+# edit your .gitignore file
+vim /home/koha/src/.gitignore
+.gitignore
+sandbox
+koha-tmpl/intranet-tmpl/prog/fr-FR/*
+koha-tmpl/opac-tmpl/prog/fr-FR/*
+
+# (the sandbox directory should be in your main KOHA directory)
 
 Update your crontab.
 Your crontab should look like this:
@@ -24,24 +45,19 @@ PERL5LIB=/home/koha/src
 * * * * * /home/koha/bin/zebraqueue.sh > /dev/null 2>&1
 
 # update master every night at 1:15AM
-15 1 * * * cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
-
+15 1 * * * cd /home/koha/src;git fetch;git checkout master > /dev/null 2>&1;git rebase origin/master > /dev/null
+# update the contrib repository at 2:15AM
+15 2 * * * cd /home/koha/contrib;git fetch;git checkout master > /dev/null 2>&1 ;git rebase origin/master > /dev/null
 # every minute, check if there is a sandbox to install
-* * * * * cd /home/koha/src;./sandbox.cron -d mysql_database_name
+* * * * * cd /home/koha/src/sandbox/cron;./sandbox.cron -d mysql_database_name
 # every minute, check if there is a patch to signoff
-* * * * * cd /home/koha/src;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
+* * * * * cd /home/koha/src/sandbox/cron;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
 
 # retrieve git bz
-git clone git://gitorious.org/~slef/git-bz/slefs-git-bz.git git-bz
+git clone git://git.koha-community.org/git-bz.git git-bz
 # apply -3 parameters patch
 cd git-bz
-wget https://depot.biblibre.com/ppoulain/0001-Add-3-parameter-to-git-am.patch
-[ or 
-wget http://webdav103-sandbox/ppoulain/0001-Add-3-parameter-to-git-am.patch
-if you're in BibLibre VPN
-]
-
-git am -3 0001-Add-3-parameter-to-git-am.patch
+git checkout -b fishsoup origin/fishsoup
 
 # make git-bz on PATH
 ln -s /home/koha/git-bz/git-bz /home/koha/bin/git-bz
@@ -95,4 +111,14 @@ to have:
 
 that should work !
 
+# Create a /home/koha/contrib/sandbox/config.yaml file:
+database:
+  driver: mysql
+  name: sandboxes_stats
+  port: 3306
+  host: host
+  user: sandboxes
+  passwd: password
 
+# Create an sql database on this host (for statistics):
+mysql> create table stats(id int auto_increment, name text, email VARCHAR(255),  date timestamp not null default CURRENT_TIMESTAMP, action varchar(255) not null, bznumber int not null, host varchar(255), primary key (id) );

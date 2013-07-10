@@ -1,0 +1,8 @@
+database:
+  driver: mysql
+  name: sandboxes_stats
+  port: 3306
+  host: hostname
+  user: sandboxes
+  passwd: password
+

@@ -1,0 +1,222 @@
+#!/usr/bin/perl
+
+# Copyright BibLibre, 2012
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+sub get_sandbox_script_path {
+    return "$FindBin::RealBin/..";
+}
+BEGIN {
+    use FindBin;
+    $libdir = get_sandbox_script_path();
+}
+use lib $libdir;
+
+use Modern::Perl;
+use Mail::Sendmail;
+use Getopt::Long;
+
+use C4::Context;
+use SandboxesStats;
+use Run;
+
+# This script is working with sandbox.pl script, and will setup a sandbox by:
+#    - checking a git branch
+#    - applying patches
+#    - trying to guess if something went wrong
+#    - apply a sample database, and upgrade it
+#    - add a Koha news with the result of the stuff done
+#    - send a mail to the user that requested the sandbox
+
+my $databasename;
+my $server = '';
+GetOptions(
+     'd:s' => \$databasename,
+);
+
+die "You must provide the MySQL database name as parameter (-d koha for example)" unless $databasename;
+
+my $koha_src_path = C4::Context->config('intranetdir');
+chomp $koha_src_path;
+chdir $koha_src_path;
+
+exit unless -f '/tmp/sandbox';
+
+open( my $sdbtmp, '<', '/tmp/sandbox' ) or die "Cannot open /tmp/sandbox ($!)";
+my $line = <$sdbtmp>;
+chomp $line;
+my ( $bugzilla, $database, $emailaddress, $name, $translations ) = split /\|/,$line;
+exit unless $bugzilla;
+
+# security issues
+$emailaddress = shell_escape($emailaddress);
+$bugzilla = shell_escape($bugzilla);
+$database = shell_escape($database);
+$name = shell_escape($name);
+$translations = shell_escape($translations);
+
+my $cmd;
+my @errors;
+
+# immediatly remove the file, to avoid cron running it twice
+$cmd = Run->new( q|sudo rm /tmp/sandbox| );
+
+$emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
+
+$cmd = Run->new( q|git am --abort|, { no_die => 1 } );
+$cmd = Run->new( q|git reset --hard| );
+$cmd = Run->new( q|git clean -d -f| );
+$cmd = Run->new( q|git checkout master|, { no_die => 1 } );
+$cmd = Run->new( q|git branch -D test|, { no_die => 1 } );
+$cmd = Run->new( q|git checkout -b test| );
+
+my $dbh = C4::Context->dbh;
+my $sth;
+my $output = q||;
+my $patches_applied = 1;
+unless ($bugzilla eq 'master') {
+    $cmd = Run->new( qq( yes 2>/dev/null | git bz apply $bugzilla ) );
+    my $bz_output = $cmd->full;
+    # test if things went well or no:
+    if ($bz_output =~ /git am --skip/ or $bz_output =~ /git bz apply --skip/) {
+        $patches_applied = 0;
+        push @errors, "<h1>Something went wrong !</h1>$bz_output";
+        Run->new( q|git am --abort| );
+        Run->new( q|git checkout master|, { no_die => 1 } );
+        Run->new( q|git reset --hard origin/master|, { no_die => 1 } );
+        Run->new( q|git checkout -b test|, { no_die => 1 } );
+    }
+}
+
+# install translations if asked for
+if ( $translations ) {
+    $output .= "\n=== translation installation ===\n";
+    chdir qq|$koha_src_path/misc/translator|;
+    my $cmd = Run->new( qq|perl translate install $translations| );
+    my $translate_output = $cmd->full();
+    if ( $translate_output ) {
+        $output .= "error occurred during translation: $translate_output\n";
+    } else {
+        $output .= "No error\n"
+    }
+}
+
+# do nothing to the mysqldatabase if the user requested that.
+unless ( $database == -1 ) {
+    eval {
+        Run->new( qq|mysql -e "drop database $databasename;create database $databasename;"| );
+    };
+    if ( $@ ) {
+        push @errors, "Cannot drop and create the database $databasename: " . $@;
+    }
+}
+
+# Else, drop the database and recreate it with data.
+if ( $database and $patches_applied) {
+    my $sql_dir_path = get_sandbox_script_path() . '/sql';
+
+    eval {
+        Run->new( qq|mysql $databasename < $sql_dir_path/sandbox$database.sql| );
+    };
+    if ( $@ ) { push @errors, "Cannot insert the database $database: " . $@; }
+
+    # TODO = SQL UPDATE to all dates (expiry, return, holds,...) to have correct datas in the database
+
+    # OK, now try to guess how "old" is our database, to update some dates.
+    # 1st we find when the last checkout has been made. We will then add this duration to many date fields in many tables
+    # thus, if you setup this database, even in 1 year, patrons won't have their subscription expired, all items checked out won't be late,...
+    $sth = $dbh->prepare("SELECT DATEDIFF(CURDATE(),max(issuedate)) FROM issues");
+    $sth->execute;
+    my ($delay) = $sth->fetchrow;
+    if ($delay) {
+        $dbh->do("UPDATE issues SET issuedate=DATE_ADD(issuedate,INTERVAL $delay DAY), date_due=DATE_ADD(date_due,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE old_issues SET issuedate=DATE_ADD(issuedate,INTERVAL $delay DAY), date_due=DATE_ADD(date_due,INTERVAL $delay DAY),returndate=DATE_ADD(returndate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqbudgetperiods SET budget_period_startdate=DATE_ADD(budget_period_startdate,INTERVAL $delay DAY), budget_period_enddate=DATE_ADD(budget_period_enddate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqbasket SET creationdate=DATE_ADD(creationdate,INTERVAL $delay DAY), closedate=DATE_ADD(closedate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE aqorders SET entrydate=DATE_ADD(entrydate,INTERVAL $delay DAY), datereceived=DATE_ADD(datereceived,INTERVAL $delay DAY),datecancellationprinted=DATE_ADD(datecancellationprinted,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE biblio SET datecreated=DATE_ADD(datecreated,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE borrowers SET dateenrolled=DATE_ADD(dateenrolled,INTERVAL $delay DAY), dateexpiry=DATE_ADD(dateexpiry,INTERVAL $delay DAY),debarred=DATE_ADD(debarred,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE items SET onloan=DATE_ADD(onloan,INTERVAL $delay DAY), datelastseen=DATE_ADD(datelastseen,INTERVAL $delay DAY),datelastborrowed=DATE_ADD(datelastborrowed,INTERVAL $delay DAY),dateaccessioned=DATE_ADD(dateaccessioned,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE old_reserves SET reservedate=DATE_ADD(reservedate,INTERVAL $delay DAY), notificationdate=DATE_ADD(notificationdate,INTERVAL $delay DAY),reminderdate=DATE_ADD(reminderdate,INTERVAL $delay DAY),cancellationdate=DATE_ADD(cancellationdate,INTERVAL $delay DAY),waitingdate=DATE_ADD(waitingdate,INTERVAL $delay DAY),expirationdate=DATE_ADD(expirationdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE reserves SET reservedate=DATE_ADD(reservedate,INTERVAL $delay DAY), notificationdate=DATE_ADD(notificationdate,INTERVAL $delay DAY),reminderdate=DATE_ADD(reminderdate,INTERVAL $delay DAY),cancellationdate=DATE_ADD(cancellationdate,INTERVAL $delay DAY),waitingdate=DATE_ADD(waitingdate,INTERVAL $delay DAY),expirationdate=DATE_ADD(expirationdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE reviews SET datereviewed=DATE_ADD(datereviewed,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE serial SET planneddate=DATE_ADD(planneddate,INTERVAL $delay DAY), publisheddate=DATE_ADD(publisheddate,INTERVAL $delay DAY),claimdate=DATE_ADD(claimdate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE statistics SET datetime=DATE_ADD(datetime,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE subscription SET startdate=DATE_ADD(startdate,INTERVAL $delay DAY), firstacquidate=DATE_ADD(firstacquidate,INTERVAL $delay DAY),enddate=DATE_ADD(enddate,INTERVAL $delay DAY)");
+        $dbh->do("UPDATE suggestions SET accepteddate=DATE_ADD(accepteddate,INTERVAL $delay DAY), suggesteddate=DATE_ADD(suggesteddate,INTERVAL $delay DAY),manageddate=DATE_ADD(manageddate,INTERVAL $delay DAY),rejecteddate=DATE_ADD(rejecteddate,INTERVAL $delay DAY)");
+    }
+
+    # now, updating database if needed
+    $cmd = Run->new( qq|perl $koha_src_path/installer/data/mysql/updatedatabase.pl|, { no_die => 1 } );
+    if ( $cmd->full ) {
+        $output .= "\nUpdatedatabase:\n" . $cmd->full;
+    } else {
+        $output .= "\nNo update database entry executed\n";
+    }
+
+    # now reindex zebra (biblio and authorities)
+    eval {
+        Run->new( qq|perl $koha_src_path/misc/migration_tools/rebuild_zebra.pl -a -b -r| );
+    };
+    if ( $@ ) {
+        push @errors, "Cannot rebuild zebra: " . $@;
+    }
+}
+
+# now fill the news with some informations
+# take number 1 for the patch result.
+unless ( $patches_applied ) {
+    $output .= join "\n", @errors;
+}
+my $news_output = $output;
+$news_output =~ s|\n|<br/>|g;
+$dbh->do("UPDATE opac_news SET number=number+1");
+$sth = $dbh->prepare("INSERT INTO opac_news (title, lang,new,timestamp,expirationdate,number) VALUES (?,'koha', ?,'2012-01-01','2099-01-01',1)");
+$sth->execute("Sandbox setup by ".($emailaddress?$emailaddress:"unknown")." with database $database and bug $bugzilla on ".scalar(localtime),$news_output);
+
+# everything is done, if we have an email, send the result
+if ( $emailaddress ) {
+    if ( $patches_applied and not @errors ) {
+        Run->new(
+            qq[echo "The sandbox you've requested is now ready.\nThe patches attached to bugzilla $bugzilla have been applied, and the result is:\n$output\nIf you use this system for the 1st time, you may find usefull to reach the wiki page http://wiki.koha-community.org/wiki/Sandboxes to have some information about those results, to check if everything went well & if you can test the patch properly" | mail -s "sandbox ready !" $emailaddress]
+        );
+    } else {
+        my $msg = qq|The sandbox you've requested is not ready.\nSome problems occurred applying patches from bug $bugzilla:\n| . join ( "\n", @errors );
+        $msg .= "\n" . $output . "\n" . q|Please transfer this email to sandboxes\@biblibre.com| if $patches_applied;
+        Run->new(
+            qq[echo "$msg" .  | mail -s "sandbox is not ready !" $emailaddress]
+        );
+    }
+}
+
+# Fill the stats
+my $hostname = `hostname`;
+chomp $hostname;
+SandboxesStats::apply({
+    name => $name,
+    email => $emailaddress,
+    bznumber => $bugzilla,
+    host => $hostname,
+});
+
+# sub to clean shell special characters (security issue)
+sub shell_escape {
+    my ($var) = @_;
+    return q{} unless $var;
+    $var =~ s/[<>\|;\(\)&\\"'#\$`~\{\}\*\?\[]//g;
+    return $var;
+}

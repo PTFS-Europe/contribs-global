@@ -1,0 +1,137 @@
+#!/usr/bin/perl
+
+# Copyright BibLibre, 2012
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+#
+# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with Koha; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+sub get_sandbox_script_path {
+    return "$FindBin::RealBin/..";
+}
+BEGIN {
+    use FindBin;
+    $libdir = get_sandbox_script_path();
+}
+use lib $libdir;
+
+use Modern::Perl;
+use WWW::Bugzilla;
+use Modern::Perl;
+use Getopt::Long;
+use Mail::Sendmail;
+
+use C4::Context;
+use SandboxesStats;
+
+# This script is working with sandbox.pl script, and will sign-off a patch and upload it to bugzilla
+# it reads the file /tmp/signoff, and, if this file exists:
+#   - check how many attachments we have to the provided bugnumber. If we have more than 1, then do nothing. Otherwise, obsolete it.
+#   - attach the top patch to the bug
+#   - change the bug status to "Signed off"
+#   - send a mail to the user to say that everything has been done, or that he must obsolete manually (in case of a multiple patches bug)
+
+my $login='';
+my $password='';
+my $server = '';
+GetOptions(
+    'u:s' => \$login,
+    'p:s' => \$password,
+    's:s' => \$server,
+);
+$server = "bugs.koha-community.org/bugzilla3/" unless $server;
+
+use Cwd qw( getcwd );
+my $git_toplevel = `git rev-parse --show-toplevel`;
+chomp $git_toplevel;
+chdir $git_toplevel or die "I can't move to $git_toplevel ($!)";
+
+unless ($login && $password) {
+    die "You must provide Bugzilla login and password ( -u login -p password )";
+}
+
+exit unless -e '/tmp/signoff';
+
+open( my $sdbtmp, '</tmp/signoff' );
+my $line = <$sdbtmp>;
+chomp $line;
+my ($bugzilla,$emailaddress,$name);
+($bugzilla,$emailaddress,$name) = split /\|/,$line;
+$emailaddress = shell_escape($emailaddress);
+$name = shell_escape($name);
+$bugzilla = shell_escape($bugzilla);
+
+exit unless $bugzilla;
+
+my @patches_to_obsolete;
+# immediatly remove the file, to avoid cron running it twice
+`sudo rm /tmp/signoff`;
+# connect to bugzilla
+my $bz = WWW::Bugzilla->new ( server => $server,
+                                email => $login,
+                                password => $password,
+                                bug_number => $bugzilla,
+                            );
+$bz->change_status("Signed Off");
+$bz->additional_comments("Patch tested with a sandbox, by $name <$emailaddress>");
+$bz->commit;
+# parse all attachments, try to guess if it's a patch, and, if there is only 1 patch, obsolete it
+foreach my $attachment ($bz->list_attachments()) {
+    unless ($attachment->{obsolete}) {
+        my $bzpatch = $bz->get_attachment('id' => $attachment->{id});
+        if ( $bzpatch =~ /diff --git/ && $bzpatch =~ /index/) {
+            push @patches_to_obsolete, $attachment->{id};
+        }
+    }
+}
+
+# There is no patch, exit
+exit unless @patches_to_obsolete;
+
+for my $patch_to_obsolete ( @patches_to_obsolete ) {
+    $bz->obsolete_attachment('id' => $patch_to_obsolete);
+}
+
+my $nb_patches = scalar( @patches_to_obsolete );
+
+my $git_so_cmd = qq|git filter-branch -f --msg-filter 'cat && echo "\nSigned-off-by: $name <$emailaddress>"' HEAD~| . ($nb_patches-1) . q|^..|;
+`$git_so_cmd`;
+
+my $git_config = `git config --global user.name "$name"; git config --global user.email "$emailaddress";git commit --amend -s --reuse-message=HEAD`;
+my $git_bz_attach_cmd = qq|git bz attach $bugzilla HEAD~| . ($nb_patches-1) . q|^..|;
+`yes 2>/dev/null | $git_bz_attach_cmd`;
+
+# everything is done, if we have an email, send the result
+if ( $emailaddress ) {
+    my $message = "Bug $bugzilla has been signed-off.\n";
+    `echo "$message" | mail -s "Patch for bug $bugzilla signed-off" $emailaddress`;
+}
+
+# Fill the stats
+my $hostname = `hostname`;
+chomp $hostname;
+SandboxesStats::signoff({
+    name => $name,
+    email => $emailaddress,
+    bznumber => $bugzilla,
+    host => $hostname,
+});
+
+# sub to clean shell special characters (security issue)
+sub shell_escape {
+    my ($var) = @_;
+    return $var unless $var;
+    $var =~ s/[<>\|;\(\)&\\"'#\$`~\{\}\*\?\[]//g;
+    return $var;
+}

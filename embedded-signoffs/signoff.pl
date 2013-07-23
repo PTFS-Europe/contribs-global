@@ -23,7 +23,7 @@ sign off on patches in their git install by using a fixed toolbar at the
 top of every page in Koha to get bug information and trigger the sign off.
 
 In order to use this script, make it available via Apache/Plack/whatever
-at /cgi-bin/koha/signoff.pl, and install WWW::Bugzilla and git-bz, then
+at /cgi-bin/koha/signoff.pl, and install WWW::Bugzilla, then
 copy the Javascript at the end of this file into intranetuserjs or
 opacuserjs (but note that if you are using it via the OPAC you may need
 special rewrite rules to handle it).
@@ -49,6 +49,7 @@ use Data::Dumper;
 use CGI;
 use JSON;
 use WWW::Bugzilla;
+use File::Temp qw(tempdir);
 
 my $query = CGI->new;
 my $op    = $query->param('op');
@@ -97,7 +98,10 @@ if ( $op eq 'retrieve' ) {
 elsif ( $op eq 'signoff' ) {
     my @signoffs     = $query->param('signoff[]');
     my @obsolete     = $query->param('obsolete[]');
+    my $notes        = $query->param('notes');
     my $signoff_list = join( ' ', @signoffs );
+
+    my $tempdir = tempdir( CLEANUP => 1 );
 
     my $output =
 `git filter-branch -f --msg-filter 'cat - && ( echo "$signoff_list" | grep -q "\$GIT_COMMIT" && echo "Signed-off-by: $name <$email>" || true)' kc/master..HEAD 2>/dev/null`;
@@ -121,10 +125,14 @@ elsif ( $op eq 'signoff' ) {
 
     if (@uploads) {
         my $diagnostics = '';
+        my @files;
         foreach (@uploads) {
-            $diagnostics .=
-              `yes|git bz attach $bug_number $_->{'commit'} 2>/dev/null`;
+            my $filename =
+              `git format-patch -1 -o $tempdir $_->{'commit'}`;
+            chomp $filename;
+            push @files, $filename;
         }
+
 
         foreach (@obsolete) {
             $bz->obsolete_attachment( 'id' => $_ );
@@ -135,8 +143,17 @@ elsif ( $op eq 'signoff' ) {
          # accept custom statuses using the nice ->change_status() object method
             $bz->{'status'} = 'Signed Off';
             $bz->additional_comments(
-"Patch tested and signoff automatically uploaded by $name <$email>"
+"Patch tested and signoff automatically uploaded by $name <$email>\n$notes"
             );
+            foreach (@files) {
+                my $desc = $_;
+                $desc =~ s#^.*/([^/]*)$#$1#;
+                $bz->add_attachment(
+                    filepath    => $_,
+                    description => "Signed off $desc",
+                    is_patch    => 1
+                );
+            }
             $bz->commit;
         };
         if ($@) {
@@ -159,10 +176,10 @@ __END__
 This script is used with the following Javascript (for intranetuserjs or opacuserjs):
 
 $(document).ready(function () {
-    $('#doc3').after('<div class="navbar navbar-fixed-top" style="z-index: 10000;"> <div id="signoff-pane" class="navbar-inner"> <h4 style="float: left; margin-right: 2em;">Preview changes</h4> <ul class="nav" style="float: none;"> <li><img id="signoff-loading" style="margin-top: 8px; display: none;" src="/intranet-tmpl/prog/img/loading-small.gif"></li> <li><input type="text" id="bz-name" placeholder="Name" size="15" style="margin-top: 8px;"></li> <li><input type="text" id="bz-email" placeholder="E-mail (Bugzilla login)" size="15" style="margin-top: 8px;"></li> <li><input type="password" id="bz-password" placeholder="Bugzilla password" size="15" style="margin-top: 8px;"></li> <li><input type="text" id="bugno" placeholder="Bug no." size="6" style="margin-top: 8px;"></li> <li><button class="btn btn-small" id="retrieve-bug">Retrieve</button></li> </ul> <ul id="bug-retrieved" class="nav" style="float:none;"> </ul> </div> </div>');
+    $('#doc3').after('<div class="navbar navbar-fixed-top" style="z-index: 10000;"> <div id="signoff-pane" class="navbar-inner"> <h4 style="float: left; margin-right: 2em;">Development testing</h4> <ul class="nav" style="float: none;"> <li><img id="signoff-loading" style="margin-top: 8px; display: none;" src="/intranet-tmpl/prog/img/loading-small.gif"></li> <li><input type="text" id="bz-name" placeholder="Name" size="15" style="margin-top: 8px;"></li> <li><input type="text" id="bz-email" placeholder="E-mail (Bugzilla login)" size="15" style="margin-top: 8px;"></li> <li><input type="password" id="bz-password" placeholder="Bugzilla password" size="15" style="margin-top: 8px;"></li> <li><input type="text" id="bugno" placeholder="Bug no." size="6" style="margin-top: 8px;"></li> <li><button class="btn btn-small" id="retrieve-bug">Retrieve</button></li> </ul> <ul id="bug-retrieved" class="nav" style="float:none;"> </ul> </div> </div>');
     $('#bz-name').val($.cookie('bzname'));
     $('#bz-email').val($.cookie('bzemail'));
-    $('body').style('margin-top: 40px;');
+    $('body').css('margin-top', '40px');
     $('#retrieve-bug').click(function () {
         signoff_ajax("retrieve", { }, function (data) {
             var patches = '';
@@ -173,7 +190,7 @@ $(document).ready(function () {
             for (var ii in data.attachments) {
                 attachments = attachments + '<li><a><label><input type="checkbox" class="obsolete-select" value="' + data.attachments[ii].id + '"/> ' + data.attachments[ii].name + '</label></a></li>';
             }
-            $('#bug-retrieved').html('<li><div style="margin-top: 8px;">' + data.summary + '</div></li><li class="dropdown"><button class="btn btn-small dropdown-toggle" data-toggle="dropdown">Sign off <b class="caret"></b></button><ul class="dropdown-menu"><li><a><h5>Patches to sign off</h5></a></li>' + patches + '<li class="divider"></li><li><a><h5>Patches to obsolete</h5></a></li>' + attachments + '<li class="divider"></li><li><a href="#" id="submit-signoff" class="btn">Submit sign off</a></li></ul></li>');
+            $('#bug-retrieved').html('<li><div style="margin-top: 8px;">' + data.summary + '</div></li><li class="dropdown"><button class="btn btn-small dropdown-toggle" data-toggle="dropdown">Sign off <b class="caret"></b></button><ul class="dropdown-menu"><li><a><h5>Patches to sign off</h5></a></li>' + patches + '<li class="divider"></li><li><a><h5>Patches to obsolete</h5></a></li>' + attachments + '<li class="divider"></li><li><a href="#" id="submit-signoff" class="btn">Submit sign off</a></li></ul></li><li><textarea id="bug-notes" placeholder="Testing notes" style="width: 200%; margin-top: 4px;"></textarea></li>');
             $('#submit-signoff').click(function () {
                 var patches = [];
                 var obsoletes = [];
@@ -185,7 +202,11 @@ $(document).ready(function () {
                 });
                 signoff_ajax("signoff", { signoff: patches, obsolete: obsoletes }, function (data) {
                     $('#signoff-loading').hide();
-                    alert(JSON.stringify(data));
+                    if (data.success && typeof data.success === 'undefined') {
+                        alert("Succeeded in signing off!");
+                    } else {
+                        alert("Something went wrong: " + error);
+                    }
                     $('#bug-retrieved').empty();
                 });
             });
@@ -205,6 +226,7 @@ function signoff_ajax(operation, submitdata, callback) {
     $('#signoff-loading').show();
     $.ajax({
         url: "/cgi-bin/koha/signoff.pl",
+        method: "POST",
         dataType: "json",
         data: $.extend({
             op: operation,
@@ -212,6 +234,7 @@ function signoff_ajax(operation, submitdata, callback) {
             name: $('#bz-name').val(),
             email: $('#bz-email').val(),
             password: $('#bz-password').val(),
+            notes: $('#bug-notes').val(),
             }, submitdata),
         success: callback
     });

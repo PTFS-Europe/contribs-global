@@ -138,13 +138,6 @@ elsif ( $op eq 'signoff' ) {
             $bz->obsolete_attachment( 'id' => $_ );
         }
         eval {
-
-         # This is sickening, but WWW::Bugzilla is rather limited and will not
-         # accept custom statuses using the nice ->change_status() object method
-            $bz->{'status'} = 'Signed Off';
-            $bz->additional_comments(
-"Patch tested and signoff automatically uploaded by $name <$email>\n$notes"
-            );
             foreach (@files) {
                 my $desc = $_;
                 $desc =~ s#^.*/([^/]*)$#$1#;
@@ -154,6 +147,22 @@ elsif ( $op eq 'signoff' ) {
                     is_patch    => 1
                 );
             }
+        };
+        if ($@) {
+            print to_json(
+                {
+                    'error' => "Encountered errors uploading attachments: $@"
+                }
+            );
+        }
+        eval {
+
+         # This is sickening, but WWW::Bugzilla is rather limited and will not
+         # accept custom statuses using the nice ->change_status() object method
+            $bz->{'status'} = 'Signed Off';
+            $bz->additional_comments(
+"Patch tested and signoff automatically uploaded by $name <$email>\n$notes"
+            );
             $bz->commit;
         };
         if ($@) {

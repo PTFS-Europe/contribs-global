@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+
+# Copyright 2013 Equinox Software, Inc.
+#
+# Author: Galen Charlton <gmc@esilibrary.com>
+#
+# This program is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along 
+# with this program; if not, see <http://www.gnu.org/licenses>.
+
+use strict;
+use warnings;
+
+unless (@ARGV == 2) {
+    print "Convert Koha's history.txt to HTML table suitable for Koha's website\n";
+    print "usage: $0 /path/to/koha/docs/history.txt history.html\n";
+    exit 1;
+}
+
+open my $in, '<', $ARGV[0] or die "Cannot open input file $ARGV[0]: $!\n";
+open my $out, '>', $ARGV[1] or die "Cannot open output file $ARGV[1]: $!\n";
+
+print_header($out);
+make_html_table($in, $out);
+print_footer($out);
+
+close $in;
+close $out;
+
+exit 0;
+
+sub print_header {
+    my $out = shift;
+    print $out <<"_HEAD_";
+<table id="history" border="2">
+<thead>
+<tr>
+<th><strong>Date</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+_HEAD_
+    return;
+}
+
+sub make_html_table {
+    my ($in, $out) = @_;
+    while (<$in>) {
+        chomp;
+        my @cols = map { norm($_) } split /\t/x, $_, -1;
+        next if $cols[0] eq 'Date' and $cols[1] eq 'Description'; # don't repeat header
+        print $out <<"_ENTRY_";
+<tr>
+<td>$cols[0]</td>
+<td>$cols[1]</td>
+</tr>
+_ENTRY_
+    }
+    return;
+}
+
+sub print_footer {
+    my $out = shift;
+    print $out <<"_FOOT_";
+</tbody>
+</table>
+_FOOT_
+    return;
+}
+
+sub norm {
+    my $str = shift;
+
+    # convert to entities
+    $str =~ s/&nbsp;/ /gx;
+    $str =~ s/&/&amp;/gx;
+    $str =~ s/</&lt;/gx;
+    $str =~ s/>/&gt;/gx;
+
+    # make URLs linky
+    $str =~ s{(http.?://\S+)}{<a href="$1">$1</a>}gx;
+
+    return $str;
+}

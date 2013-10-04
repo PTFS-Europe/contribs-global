@@ -2,3 +2,7 @@ content     koct    chrome/content/
 overlay chrome://browser/content/browser.xul chrome://koct/content/koct.xul
 locale koct fr-FR chrome/locale/fr-FR/
 locale koct en-US chrome/locale/en-US/
+locale koct de-DE chrome/locale/de-DE/
+locale koct es-ES chrome/locale/es-ES/
+locale koct gl-ES chrome/locale/gl-ES/
+locale koct it-IT chrome/locale/it-IT/

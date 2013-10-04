@@ -6,3 +6,9 @@ locale koct de-DE chrome/locale/de-DE/
 locale koct es-ES chrome/locale/es-ES/
 locale koct gl-ES chrome/locale/gl-ES/
 locale koct it-IT chrome/locale/it-IT/
+locale koct fr chrome/locale/fr-FR/
+locale koct en chrome/locale/en-US/
+locale koct de chrome/locale/de-DE/
+locale koct gl chrome/locale/gl-ES/
+locale koct es chrome/locale/es-ES/
+locale koct it chrome/locale/it-IT/

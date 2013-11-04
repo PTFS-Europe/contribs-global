@@ -12,6 +12,7 @@ cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
 # link files from contrib repo to koha:
 mkdir -p sandbox/templates
 mkdir -p sandbox/sql
+mkdir -p sandbox/cron
 ln -s /home/koha/contrib/sandbox/sandbox.pl sandbox.pl
 cd /home/koha/src/sandbox/templates
 ln -s /home/koha/contrib/sandbox/templates/sandbox.tt sandbox.tt
@@ -33,6 +34,8 @@ koha-tmpl/opac-tmpl/prog/fr-FR/*
 
 Update your crontab.
 Your crontab should look like this:
+
+======================================================================================================================
 # who should I mail?
 MAILTO=your.email@address.for.sysop
 # add /home/koha/bin, where git-bz will be stored
@@ -49,10 +52,14 @@ PERL5LIB=/home/koha/src
 15 1 * * * cd /home/koha/src;git fetch;git checkout master > /dev/null 2>&1;git rebase origin/master > /dev/null
 # update the contrib repository at 2:15AM
 15 2 * * * cd /home/koha/contrib;git fetch;git checkout master > /dev/null 2>&1 ;git rebase origin/master > /dev/null
+# update git-bz
+15 1 * * * cd /home/koha/git-bz;git checkout fishsoup > /dev/null 2>&1;git pull --rebase > /dev/null
 # every minute, check if there is a sandbox to install
 * * * * * cd /home/koha/src/sandbox/cron;./sandbox.cron -d mysql_database_name
 # every minute, check if there is a patch to signoff
 * * * * * cd /home/koha/src/sandbox/cron;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
+
+=======================================================================================================================
 
 # add KOHA_CONTRIB to apache environment variable for the koha virtualhost as below (for Intranet)
 SetEnv KOHA_CONTRIB "/home/koha/contrib"
@@ -73,6 +80,17 @@ git config --global bz-tracker.bugs.koha-community.org.path /bugzilla3
 git config bz.default-product Koha
 git config --global bz-tracker.bugs.koha-community.org.bz-user YOURLOGIN
 git config --global bz-tracker.bugs.koha-community.org.bz-password YOURPASSWORD
+
+# add mysql connection settings to your local ~/.my.cnf like
+=======================================================================================================================
+[client]
+user=koha_test1
+password=pwd
+host=localhost
+[mysql]
+default-character-set=utf8
+database=test1
+======================================================================================================================
 
 # you can now test the sandbox system
 http://your.koha.url/cgi-bin/koha/sandbox.pl

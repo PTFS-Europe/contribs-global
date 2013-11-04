@@ -12,6 +12,7 @@ cd /home/koha/src;git fetch;git checkout master;git rebase origin/master
 # link files from contrib repo to koha:
 mkdir -p sandbox/templates
 mkdir -p sandbox/sql
+mkdir -p sandbox/cron
 ln -s /home/koha/contrib/sandbox/sandbox.pl sandbox.pl
 cd /home/koha/src/sandbox/templates
 ln -s /home/koha/contrib/sandbox/templates/sandbox.tt sandbox.tt
@@ -33,6 +34,8 @@ koha-tmpl/opac-tmpl/prog/fr-FR/*
 
 Update your crontab.
 Your crontab should look like this:
+
+======================================================================================================================
 # who should I mail?
 MAILTO=your.email@address.for.sysop
 # add /home/koha/bin, where git-bz will be stored
@@ -53,6 +56,8 @@ PERL5LIB=/home/koha/src
 # every minute, check if there is a patch to signoff
 * * * * * cd /home/koha/src/sandbox/cron;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
 
+=======================================================================================================================
+
 # retrieve git bz
 git clone git://git.koha-community.org/git-bz.git git-bz
 # apply -3 parameters patch
@@ -69,6 +74,15 @@ git config --global bz-tracker.bugs.koha-community.org.path /bugzilla3
 git config bz.default-product Koha
 git config --global bz-tracker.bugs.koha-community.org.bz-user YOURLOGIN
 git config --global bz-tracker.bugs.koha-community.org.bz-password YOURPASSWORD
+
+# add mysql connection settings to your local ~/.my.cnf like
+[client]
+user=koha_test1
+password=pwd
+host=localhost
+[mysql]
+default-character-set=utf8
+database=test1
 
 # you can now test the sandbox system
 http://your.koha.url/cgi-bin/koha/sandbox.pl

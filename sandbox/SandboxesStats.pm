@@ -5,7 +5,7 @@ use DBI;
 
 use YAML qw( LoadFile );
 
-my $config_filepath = q|/home/koha/contrib/sandbox/config.yaml|;
+my $config_filepath = $ENV{"KOHA_CONTRIB"} . "/sandbox/config.yaml";
 
 my $conf = LoadFile( $config_filepath );
 

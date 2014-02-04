@@ -22,16 +22,20 @@ use CGI;
 use Template;
 use Template::Constants qw( :debug );
 use List::MoreUtils qw ( uniq );
+use YAML qw( LoadFile );
 
 use C4::Context;
 
 # This script display a webpage that the user can fill to request a sandbox with a patch applied, or signoff a patch previously applied
-# If the user requested a sandbox, a file is written in /tmp/sandbox, with bugzillanumber|the database to setup|the tester email|the translation requested
-# If the user requested a signoff, a file is written in /tmp/signoff with the bugzilla number|the tester email|the tester name
+# If the user requested a sandbox, a file is written in /tmp/$tempfile, with bugzillanumber|the database to setup|the tester email|the translation requested
+# If the user requested a signoff, a file is written in /tmp/$signoff with the bugzilla number|the tester email|the tester name
 
 # Both /tmp/sandbox and /tmp/signoff are managed by a cronjob that is run every minute and delete them after setting the sandbox/signing-off the patch
 
+my $config_filepath = $ENV{"KOHA_CONTRIB"} . "/sandbox/config.yaml";
+my $conf = LoadFile( $config_filepath );
 my $query          = CGI->new;
+
 my $bugzilla       = $query->param('bugzilla');
 my $database       = $query->param('database') || 0;
 my $mailaddress    = $query->param('mailaddress');
@@ -40,6 +44,7 @@ my $translations   = $query->param('translations');
 my $signoff_email  = $query->param('signoff_email');
 my $signoff_name   = $query->param('signoff_name');
 my $signoff_number = $query->param('signoff_number');
+my $tempfile = $conf->{sandbox}{tempfile};
 
 my $template = Template->new();
 my $templatevars;
@@ -54,10 +59,10 @@ if ($bugzilla && lc($query->param('koha')) eq 'koha') {
     # parameters should/must be numbers only
     unless ($bugzilla=~/\d*/ or $bugzilla eq 'master') { $bugzilla='' };
     unless ($database=~/\d*/) { $database = '' };
-    open( my $sdbtmp, '>', '/tmp/sandbox');
+    open( my $sdbtmp, '>', "/tmp/$tempfile");
     print $sdbtmp $bugzilla.'|'.$database.'|'.$mailaddress."|".$name."|".$translations."\n";
     close($sdbtmp);
-    chmod 0666, "/tmp/sandbox";
+    chmod 0666, "/tmp/$tempfile";
     $templatevars->{done} = 1;
 }
 elsif ($signoff_number && $signoff_email && lc($query->param('koha')) eq 'koha') {

@@ -29,6 +29,7 @@ use lib $libdir;
 use Modern::Perl;
 use Mail::Sendmail;
 use Getopt::Long;
+use YAML qw( LoadFile );
 
 use C4::Context;
 use SandboxesStats;
@@ -50,13 +51,16 @@ GetOptions(
 
 die "You must provide the MySQL database name as parameter (-d koha for example)" unless $databasename;
 
+my $config_filepath = $ENV{"KOHA_CONTRIB"} . "/sandbox/config.yaml";
+my $conf = LoadFile( $config_filepath );
 my $koha_src_path = C4::Context->config('intranetdir');
 chomp $koha_src_path;
 chdir $koha_src_path;
 
-exit unless -f '/tmp/sandbox';
+my $tempfile = $conf->{sandbox}{tempfile};
+exit unless -f "/tmp/$tempfile";
 
-open( my $sdbtmp, '<', '/tmp/sandbox' ) or die "Cannot open /tmp/sandbox ($!)";
+open( my $sdbtmp, '<', "/tmp/$tempfile" ) or die "Cannot open /tmp/$tempfile ($!)";
 my $line = <$sdbtmp>;
 chomp $line;
 my ( $bugzilla, $database, $emailaddress, $name, $translations ) = split /\|/,$line;
@@ -73,7 +77,7 @@ my $cmd;
 my @errors;
 
 # immediatly remove the file, to avoid cron running it twice
-$cmd = Run->new( q|sudo rm /tmp/sandbox| );
+$cmd = Run->new( "sudo rm /tmp/$tempfile" );
 
 $emailaddress =~ s/"//g; # remove any " that have nothing to do in a mail and will break SQL insert
 

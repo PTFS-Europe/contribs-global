@@ -31,9 +31,11 @@ use WWW::Bugzilla;
 use Modern::Perl;
 use Getopt::Long;
 use Mail::Sendmail;
+use YAML qw( LoadFile );
 
 use C4::Context;
 use SandboxesStats;
+use Run;
 
 # This script is working with sandbox.pl script, and will sign-off a patch and upload it to bugzilla
 # it reads the file /tmp/signoff, and, if this file exists:
@@ -52,6 +54,8 @@ GetOptions(
 );
 $server = "bugs.koha-community.org/bugzilla3/" unless $server;
 
+my $cmd;
+
 use Cwd qw( getcwd );
 my $git_toplevel = `git rev-parse --show-toplevel`;
 chomp $git_toplevel;
@@ -61,9 +65,13 @@ unless ($login && $password) {
     die "You must provide Bugzilla login and password ( -u login -p password )";
 }
 
-exit unless -e '/tmp/signoff';
+my $config_filepath = $ENV{"KOHA_CONTRIB"} . "/sandbox/config.yaml";
+my $conf = LoadFile( $config_filepath );
 
-open( my $sdbtmp, '</tmp/signoff' );
+my $tempfile = $conf->{signoff}{tempfile};
+exit unless -e "/tmp/$tempfile";
+
+open( my $sdbtmp, "</tmp/$tempfile" );
 my $line = <$sdbtmp>;
 chomp $line;
 my ($bugzilla,$emailaddress,$name);
@@ -76,7 +84,8 @@ exit unless $bugzilla;
 
 my @patches_to_obsolete;
 # immediatly remove the file, to avoid cron running it twice
-`sudo rm /tmp/signoff`;
+$cmd = Run->new( "sudo rm /tmp/$tempfile" );
+
 # connect to bugzilla
 my $bz = WWW::Bugzilla->new ( server => $server,
                                 email => $login,

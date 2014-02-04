@@ -38,6 +38,7 @@ MAILTO=your.email@address.for.sysop
 # add /home/koha/bin, where git-bz will be stored
 PATH=/home/koha/bin:/usr/local/bin:/usr/bin:/bin
 # Koha conf
+KOHA_CONTRIB=/home/koha/contrib
 KOHA_CONF=/home/koha/etc/koha-conf.xml
 PERL5LIB=/home/koha/src
 
@@ -52,6 +53,10 @@ PERL5LIB=/home/koha/src
 * * * * * cd /home/koha/src/sandbox/cron;./sandbox.cron -d mysql_database_name
 # every minute, check if there is a patch to signoff
 * * * * * cd /home/koha/src/sandbox/cron;./sandbox_signoff.cron -u bugzilla_username -p bugzilla_password
+
+# add KOHA_CONTRIB to apache environment variable for the koha virtualhost as below (for Intranet)
+SetEnv KOHA_CONTRIB "/home/koha/contrib"
+
 
 # retrieve git bz
 git clone git://git.koha-community.org/git-bz.git git-bz
@@ -119,6 +124,10 @@ database:
   host: host
   user: sandboxes
   passwd: password
+sandbox:
+  tempfile:sandbox1
+signoff:
+  tempfile:signoff1
 
 # Create an sql database on this host (for statistics):
 mysql> create table stats(id int auto_increment, name text, email VARCHAR(255),  date timestamp not null default CURRENT_TIMESTAMP, action varchar(255) not null, bznumber int not null, host varchar(255), primary key (id) );

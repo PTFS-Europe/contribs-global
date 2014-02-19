@@ -181,12 +181,13 @@ if ( $database and $patches_applied) {
 # take number 1 for the patch result.
 unless ( $patches_applied ) {
     $output .= join "\n", @errors;
+} else {
+    my $news_output = $output;
+    $news_output =~ s|\n|<br/>|g;
+    $dbh->do("UPDATE opac_news SET number=number+1");
+    $sth = $dbh->prepare("INSERT INTO opac_news (title, lang,new,timestamp,expirationdate,number) VALUES (?,'koha', ?,'2012-01-01','2099-01-01',1)");
+    $sth->execute("Sandbox setup by ".($emailaddress?$emailaddress:"unknown")." with database $database and bug $bugzilla on ".scalar(localtime),$news_output);
 }
-my $news_output = $output;
-$news_output =~ s|\n|<br/>|g;
-$dbh->do("UPDATE opac_news SET number=number+1");
-$sth = $dbh->prepare("INSERT INTO opac_news (title, lang,new,timestamp,expirationdate,number) VALUES (?,'koha', ?,'2012-01-01','2099-01-01',1)");
-$sth->execute("Sandbox setup by ".($emailaddress?$emailaddress:"unknown")." with database $database and bug $bugzilla on ".scalar(localtime),$news_output);
 
 # everything is done, if we have an email, send the result
 if ( $emailaddress ) {

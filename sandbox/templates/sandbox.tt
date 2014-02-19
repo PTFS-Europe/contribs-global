@@ -79,9 +79,12 @@
   [% ELSE %]
     <div class="dialog alert">
     [% IF no_patch_applied %]
-      It seems you don't have applied a patch, so you cannot sign off it.
+      It seems you don't have applied a patch, so you cannot sign it off.
+      If you applied patches from the right report, check the commit message of the last patch. It should start with "Bug XXXXX", if not, please inform the author of the patch.
+    [% ELSIF not_applied_today %]
+      No patch applied today. The code of sandboxes is reset every night. You should apply patches before trying to sign them off.
     [% ELSE %]
-      You want to sign off patches from bug [% bznumber_needed %] but it seems patches applied are from bug [% bznumber_applied %].
+      You want to sign off patches from bug [% bznumber_needed %] but it seems that patches applied are from bug [% bznumber_applied %].
     [% END %]
     </div>
   [% END %]

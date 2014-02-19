@@ -21,6 +21,7 @@ use Modern::Perl;
 use CGI;
 use Template;
 use Template::Constants qw( :debug );
+use List::MoreUtils qw ( uniq );
 
 use C4::Context;
 
@@ -62,18 +63,32 @@ if ($bugzilla && lc($query->param('koha')) eq 'koha') {
 elsif ($signoff_number && $signoff_email && lc($query->param('koha')) eq 'koha') {
     # OK, we must signoff save a file with informations
     $templatevars->{signoff_needed} = 1;
-    my $bz_applied;
-    if ( $lastcreated =~ m|bug (\d+)| ) {
+    my ( $bz_applied, $applied_date );
+
+    if ( $lastcreated =~ m|and bug \d+ on (\w+\s+\w+\s+\d+)\s+\d{2}:\d{2}:\d{2} \d{4}| ) {
+        $applied_date = $1;
+    }
+
+    my $last_commit_msg = qx|git log --pretty=oneline -1|;
+    if ( $last_commit_msg =~ m|^\S+\s+Bug (\d+)| ) {
         $bz_applied = $1;
     }
     if ( $bz_applied ) {
-        if ( $bz_applied == $signoff_number ) {
+        my @datepcs = split( /\s+/, scalar(localtime) );
+        my $applied_today = 0;
+        if ( $applied_date =~ m|^$datepcs[0]\s+$datepcs[1]\s+$datepcs[2]$| ) {
+            $applied_today = 1;
+        }
+        if ( $bz_applied == $signoff_number and $applied_today) {
             open( my $sdbtmp, '>', '/tmp/signoff');
             print $sdbtmp $signoff_number.'|'.$signoff_email.'|'.($signoff_name?$signoff_name:$signoff_email);
             close($sdbtmp);
             chmod 0666, "/tmp/signoff";
             $templatevars->{signoff_done} = 1;
         } else {
+            unless ( $applied_today ) {
+                $templatevars->{not_applied_today} = 1;
+            }
             $templatevars->{bznumber_applied} = $bz_applied;
             $templatevars->{bznumber_needed} = $signoff_number;
             $templatevars->{signoff_done} = 0;
@@ -84,7 +99,6 @@ elsif ($signoff_number && $signoff_email && lc($query->param('koha')) eq 'koha')
     }
 }
 
-use List::MoreUtils qw ( uniq );
 opendir (my $dir, "misc/translator/po") or die $!;
 my @languages;
 while (my $filename = readdir($dir)) {

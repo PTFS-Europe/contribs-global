@@ -32,7 +32,7 @@ use C4::Context;
 
 my $query          = CGI->new;
 my $bugzilla       = $query->param('bugzilla');
-my $database       = $query->param('database');
+my $database       = $query->param('database') || 0;
 my $mailaddress    = $query->param('mailaddress');
 my $name           = $query->param('name');
 my $translations   = $query->param('translations');

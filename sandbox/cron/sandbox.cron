@@ -118,7 +118,7 @@ if ( $translations ) {
 # do nothing to the mysqldatabase if the user requested that.
 unless ( $database == -1 ) {
     eval {
-        Run->new( qq|mysql -e "drop database $databasename;create database $databasename DEFAULT COLLATE utf8_unicode_ci DEFAULT CHARACTER SET utf8;"| );
+        Run->new( qq|mysql -e "drop database $databasename;create database $databasename CHARACTER SET utf8 COLLATE utf8_unicode_ci"| );
     };
     if ( $@ ) {
         push @errors, "Cannot drop and create the database $databasename: " . $@;

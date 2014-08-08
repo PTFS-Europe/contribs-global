@@ -30,10 +30,11 @@ sub signoff {
     my $email = $params->{email};
     my $bznumber = $params->{bznumber};
     my $host = $params->{host};
+    my $instance = $params->{instance};
     $dbh->do(
-        q|INSERT INTO stats(name, email, bznumber, action, host) values(?, ?, ?, 'signoff', ?)|,
+        q|INSERT INTO stats(name, email, bznumber, action, instance, host) values(?, ?, ?, 'signoff', ?, ?)|,
         {},
-        $name, $email, $bznumber, $host
+        $name, $email, $bznumber, $instance, $host
     );
 }
 
@@ -43,10 +44,11 @@ sub apply {
     my $email = $params->{email};
     my $bznumber = $params->{bznumber};
     my $host = $params->{host};
+    my $instance = $params->{instance};
     $dbh->do(
-        q|INSERT INTO stats(name, email, bznumber, action, host) values(?, ?, ?, 'apply', ?)|,
+        q|INSERT INTO stats(name, email, bznumber, action, instance, host) values(?, ?, ?, 'apply', ?, ?)|,
         {},
-        $name, $email, $bznumber, $host
+        $name, $email, $bznumber, $instance, $host
     );
 }
 

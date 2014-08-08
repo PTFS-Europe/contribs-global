@@ -129,12 +129,14 @@ if ( $emailaddress ) {
 
 # Fill the stats
 my $hostname = `hostname`;
+my $instance = $conf->{sandbox}{tempfile};
 chomp $hostname;
 SandboxesStats::signoff({
     name => $name,
     email => $emailaddress,
     bznumber => $bugzilla,
     host => $hostname,
+    instance => $instance,
 });
 
 # sub to clean shell special characters (security issue)

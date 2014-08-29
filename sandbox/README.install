@@ -57,7 +57,6 @@ PERL5LIB=/home/koha/src
 # add KOHA_CONTRIB to apache environment variable for the koha virtualhost as below (for Intranet)
 SetEnv KOHA_CONTRIB "/home/koha/contrib"
 
-
 # retrieve git bz
 git clone git://git.koha-community.org/git-bz.git git-bz
 # apply -3 parameters patch
@@ -130,4 +129,4 @@ signoff:
   tempfile:signoff1
 
 # Create an sql database on this host (for statistics):
-mysql> create table stats(id int auto_increment, name text, email VARCHAR(255),  date timestamp not null default CURRENT_TIMESTAMP, action varchar(255) not null, bznumber int not null, host varchar(255), primary key (id) );
+mysql> CREATE TABLE stats(id int auto_increment, instance VARCHAR(30), name text, email VARCHAR(255),  date timestamp not null default CURRENT_TIMESTAMP, action varchar(255) not null, bznumber int not null, host varchar(255), primary key (id) );

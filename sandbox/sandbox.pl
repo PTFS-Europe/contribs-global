@@ -45,6 +45,7 @@ my $signoff_email  = $query->param('signoff_email');
 my $signoff_name   = $query->param('signoff_name');
 my $signoff_number = $query->param('signoff_number');
 my $tempfile = $conf->{sandbox}{tempfile};
+my $signfile = $conf->{signoff}{tempfile};
 
 my $template = Template->new();
 my $templatevars;
@@ -85,10 +86,10 @@ elsif ($signoff_number && $signoff_email && lc($query->param('koha')) eq 'koha')
             $applied_today = 1;
         }
         if ( $bz_applied == $signoff_number and $applied_today) {
-            open( my $sdbtmp, '>', '/tmp/signoff');
+            open( my $sdbtmp, '>', "/tmp/$signfile");
             print $sdbtmp $signoff_number.'|'.$signoff_email.'|'.($signoff_name?$signoff_name:$signoff_email);
             close($sdbtmp);
-            chmod 0666, "/tmp/signoff";
+            chmod 0666, "/tmp/$signfile";
             $templatevars->{signoff_done} = 1;
         } else {
             unless ( $applied_today ) {

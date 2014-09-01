@@ -142,9 +142,9 @@ database:
   user: sandboxes
   passwd: password
 sandbox:
-  tempfile:sandbox1
+  tempfile: sandbox1
 signoff:
-  tempfile:signoff1
+  tempfile: signoff1
 
 # Create an sql database on this host (for statistics):
 mysql> CREATE TABLE stats(id int auto_increment, instance VARCHAR(30), name text, email VARCHAR(255),  date timestamp not null default CURRENT_TIMESTAMP, action varchar(255) not null, bznumber int not null, host varchar(255), primary key (id) );

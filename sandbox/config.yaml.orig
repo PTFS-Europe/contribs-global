@@ -6,3 +6,7 @@ database:
   user: sandboxes
   passwd: password
 
+sandbox:
+  tempfile: sandbox
+signoff:
+  tempfile: signoff

@@ -46,7 +46,7 @@ KOHA_CONF=/home/koha/etc/koha-conf.xml
 PERL5LIB=/home/koha/src
 
 ##### For Rebuild Zebra
-* * * * * /home/koha/bin/zebraqueue.sh > /dev/null 2>&1
+* * * * * /home/koha/src/misc/migration_tools/rebuid_zebra.pl -a -b -z -x > /dev/null 2>&1
 
 # update master every night at 1:15AM
 15 1 * * * cd /home/koha/src;git fetch;git checkout master > /dev/null 2>&1;git rebase origin/master > /dev/null
